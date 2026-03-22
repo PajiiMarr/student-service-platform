@@ -35,16 +35,18 @@ export async function action({ request, context }: Route.ActionArgs) {
   const payload = { email, username, password, confirm_password };
 
   try {
-    await AxiosInstance.post("/api/signup/", payload);
-
-    return redirect("/profiling");
+    const response = await AxiosInstance.post("/api/signup", payload);
+    
+    console.log("Signup successful:", response.data);
+    
   } catch (error: any) {
+    console.log("Signup failed:", error.response.data);
     const message = error.response?.data?.message || "Something went wrong";
 
     return data(
       {
         errors: {
-          general: error.response.data.error || "Something went wrong",
+          general: error.response.data.message || "Something went wrong",
         },
       },
       { status: error.response.status },

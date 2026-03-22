@@ -3,7 +3,9 @@ package services
 import (
 	"backend/models"
 	"backend/repository"
+	"context"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
@@ -11,13 +13,21 @@ type UserService struct {
 }
 
 func (s *UserService) GetUsers() ([]models.User, error) {
-    return s.UserRepo.GetAllUsers()
+	return s.UserRepo.GetAllUsers()
 }
 
-func (s *UserService) CreateUser(user *models.User) error {
-    if user.Email == "" {
-        return fmt.Errorf("email is required")
-    }
+func (s *UserService) SignupUser(ctx context.Context, user *models.User) error {
+	existing, err := s.UserRepo.GetUserByEmail(ctx, user.Email)
+	if err != nil && existing.ID != 0 {
+		return fmt.Errorf("Email already in use")
+	}
 
-    return s.UserRepo.CreateUser(user)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.Password = string(hashed)
+
+
+	return s.UserRepo.SignupUser(ctx, user)
 }

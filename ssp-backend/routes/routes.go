@@ -1,22 +1,41 @@
 package routes
 
 import (
-    "github.com/gin-gonic/gin"
-    "backend/handlers"
-    "backend/repository"
-    "backend/services"
-    "gorm.io/gorm"
+	"backend/auth"
+	"backend/config"
+	"backend/handlers"
+	"backend/repository"
+	"backend/services"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func SetupRoutes(db *gorm.DB) *gin.Engine {
-    r := gin.Default()
+	r := gin.Default()
 
-    userRepo := &repository.UserRepository{DB: db}
-    userService := &services.UserService{UserRepo: userRepo}
-    userHandler := &handlers.UserHandler{UserService: userService}
+	cfg := config.LoadConfig()
 
-    r.GET("/users", userHandler.GetUsers)
-    r.POST("/users", userHandler.CreateUser)
+	authService := &auth.AuthJWT{JWTSecret: cfg.JWTSecret}
 
-    return r
+	userRepo := &repository.UserRepository{DB: db}
+	userService := &services.UserService{UserRepo: userRepo}
+	userHandler := &handlers.UserHandler{
+		UserService: userService,
+		AuthService: authService,
+	}
+
+	api := r.Group("/api")
+	{
+		api.GET("/users", userHandler.GetUsers)
+		api.POST("/signup", userHandler.SignupUser)
+
+		// protected := api.Group("/protected")
+		// protected.Use(middleware.AuthMiddleware(authService, userRepo)){
+        //     return null
+		// }
+
+	}
+
+	return r
 }
