@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"backend/auth"
+	"backend/middleware"
 	"backend/models"
 	"backend/services"
-	"backend/auth"
+	"backend/utils"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
@@ -14,13 +17,22 @@ type UserHandler struct {
 	AuthService *auth.AuthJWT
 }
 
-func (h *UserHandler) GetUsers(c *gin.Context) {
-	users, err := h.UserService.GetUsers()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+func (h *UserHandler) GetProfilingUser(c *gin.Context) {
+	// Get authenticated user from context
+	user, exists := middleware.GetAuthenticatedUser(c)
+
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
-	c.JSON(http.StatusOK, users)
+
+	c.JSON(http.StatusOK, gin.H{
+		"user": gin.H{
+			"id":       user.ID,
+			"email":    user.Email,
+			"username": user.Username,
+		},
+	})
 }
 
 func (h *UserHandler) SignupUser(c *gin.Context) {
@@ -42,5 +54,8 @@ func (h *UserHandler) SignupUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Failed to generate token: %v", err)})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"user": user, "token": token})
+
+	utils.SetAuthCookie(c.Writer, token)
+
+	c.JSON(http.StatusCreated, gin.H{"user": user})
 }

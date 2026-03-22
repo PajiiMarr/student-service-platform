@@ -2,8 +2,8 @@ package main
 
 import (
 	"backend/config"
-	"backend/routes"
 	"backend/models"
+	"backend/routes"
 	"gorm.io/gorm"
 	"log"
 )
@@ -16,7 +16,10 @@ func main() {
 
 	r := routes.SetupRoutes(db)
 
-	r.Run(":8080")
+	if err := r.Run("127.0.0.1:8080"); err != nil {
+		log.Fatal("Failed to start server:", err)
+	}
+
 }
 
 func autoRunMigrations(db *gorm.DB) {

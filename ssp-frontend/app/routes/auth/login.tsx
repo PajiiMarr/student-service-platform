@@ -18,7 +18,7 @@ export async function action({request, context}: Route.ActionArgs) {
 
 export default function Login() {
     return (
-        <div className="flex justify-center items-center w-full h-full">
+        <div className="h-[80vh] flex justify-center items-center w-full">
             <form action="" method="post" className="p-10 rounded-lg shadow-lg w-1/4">
                 <h2>Login your account</h2>
                 <div className="flex flex-col my-5">
