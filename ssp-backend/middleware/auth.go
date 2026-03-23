@@ -18,10 +18,6 @@ func AuthMiddleware(authJwt *auth.AuthJWT, userRepo *repository.UserRepository) 
         // Extract token from Authorization header or cookie
         tokenString := extractToken(c)
         
-        // Debug log
-        fmt.Println("=== Auth Debug ===")
-        fmt.Println("Token found:", tokenString != "")
-        
         if tokenString == "" {
             c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication token is required"})
             c.Abort()
@@ -125,6 +121,9 @@ func extractUserIDFromClaims(claims jwt.MapClaims) (uint, error) {
 func fetchUserByID(c *gin.Context, userRepo *repository.UserRepository, userID uint) (*models.User, error) {
     user, err := userRepo.GetUserByID(c.Request.Context(), userID)
     if err != nil {
+        return nil, fmt.Errorf("database error: %v", err)
+    }
+    if user == nil {
         return nil, fmt.Errorf("user not found")
     }
     return user, nil

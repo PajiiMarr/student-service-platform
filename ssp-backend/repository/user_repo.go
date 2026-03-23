@@ -2,6 +2,7 @@ package repository
 
 import (
 	"backend/models"
+	"errors"
 	"context"
 	"gorm.io/gorm"
 )
@@ -27,7 +28,17 @@ func (r *UserRepository) SignupUser(ctx context.Context, user *models.User) erro
 }
 
 func (r *UserRepository) GetUserByID(ctx context.Context, id uint) (*models.User, error) {
-	var user models.User
-	err := r.DB.WithContext(ctx).First(&user, id).Error
-	return &user, err
+    var user models.User
+    err := r.DB.WithContext(ctx).First(&user, id).Error
+    if err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return nil, nil  // Return nil user when not found
+        }
+        return nil, err
+    }
+    return &user, nil
+}
+
+func (r *UserRepository) UpdateUser(ctx context.Context, user *models.User) error {
+	return r.DB.WithContext(ctx).Save(user).Error
 }
