@@ -61,38 +61,23 @@ func (h *UserHandler) GetProfilingUser(c *gin.Context) {
 }
 
 func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
-	// Get authenticated user
 	user, exists := middleware.GetAuthenticatedUser(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	// Bind JSON directly to user fields
-	var updateData struct {
-		FirstName  string `json:"first_name"`
-		MiddleName string `json:"middle_name"`
-		LastName   string `json:"last_name"`
-		Birthday   string `json:"birthday"`
-		Street     string `json:"street"`
-		Barangay   string `json:"barangay"`
-		City       string `json:"city"`
-	}
-	
+	var updateData models.User
 	if err := c.ShouldBindJSON(&updateData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
-	// Update user profile
 	updatedUser, err := h.UserService.UpdateUserProfile(c.Request.Context(), user.ID, &updateData)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Profile updated successfully",
-		"user": updatedUser,
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully", "user": updatedUser})
 }

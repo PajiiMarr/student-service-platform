@@ -66,6 +66,7 @@ func registerUserRoutes(r *gin.Engine, userHandler *handlers.UserHandler, authSe
 		protected.Use(middleware.AuthMiddleware(authService, userRepo))
 		{
 			protected.GET("/profiling", userHandler.GetProfilingUser)
+			protected.PUT("/profiling", userHandler.UpdateUserProfile)
 			// Add more protected routes here
 		}
 	}

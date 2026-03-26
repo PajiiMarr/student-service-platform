@@ -57,15 +57,27 @@ export const formatErrorMessage = (error: string | any): string => {
 };
 
 // Format multiple errors from form data
-export const formatFormErrors = (errors: Record<string, string>): Record<string, string> => {
+export const formatFormErrors = (errors: Record<string, any>): Record<string, string> => {
   const formatted: Record<string, string> = {};
-  
+
   if (errors) {
     Object.keys(errors).forEach(key => {
-      formatted[key] = formatErrorMessage(errors[key]);
+      const value = errors[key];
+
+      if (typeof value === "string") {
+        // Try to map it, but fall back to the original string (not "something went wrong")
+        const mapped = errorMessages[value] 
+          ?? Object.entries(errorMessages).find(([k]) => value.toLowerCase().includes(k.toLowerCase()))?.[1];
+        formatted[key] = mapped ?? value; // ← use original if no mapping found
+      } else if (Array.isArray(value) && value.length > 0) {
+        // Laravel-style arrays: { field: ["message"] }
+        formatted[key] = value[0];
+      } else {
+        formatted[key] = formatErrorMessage(value);
+      }
     });
   }
-  
+
   return formatted;
 };
 

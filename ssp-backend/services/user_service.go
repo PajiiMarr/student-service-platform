@@ -33,8 +33,7 @@ func (s *UserService) SignupUser(ctx context.Context, user *models.User) error {
 	return s.UserRepo.SignupUser(ctx, user)
 }
 
-func (s *UserService) UpdateUserProfile(ctx context.Context, userID uint, updateData interface{}) (*models.User, error) {
-	// Get existing user
+func (s *UserService) UpdateUserProfile(ctx context.Context, userID uint, updateData *models.User) (*models.User, error) {
 	user, err := s.UserRepo.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -43,46 +42,29 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID uint, update
 		return nil, errors.New("user not found")
 	}
 
-	// Type assertion to get the struct
-	data, ok := updateData.(*struct {
-		FirstName  string
-		MiddleName string
-		LastName   string
-		Birthday   string
-		Street     string
-		Barangay   string
-		City       string
-	})
-	if !ok {
-		return nil, errors.New("invalid update data")
+	if updateData.FirstName != "" {
+		user.FirstName = updateData.FirstName
+	}
+	if updateData.MiddleName != "" {
+		user.MiddleName = updateData.MiddleName
+	}
+	if updateData.LastName != "" {
+		user.LastName = updateData.LastName
+	}
+	if updateData.Birthday != "" {
+		user.Birthday = updateData.Birthday
+	}
+	if updateData.Street != "" {
+		user.Street = updateData.Street
+	}
+	if updateData.Barangay != "" {
+		user.Barangay = updateData.Barangay
+	}
+	if updateData.City != "" {
+		user.City = updateData.City
 	}
 
-	// Update fields if provided
-	if data.FirstName != "" {
-		user.FirstName = data.FirstName
-	}
-	if data.MiddleName != "" {
-		user.MiddleName = data.MiddleName
-	}
-	if data.LastName != "" {
-		user.LastName = data.LastName
-	}
-	if data.Birthday != "" {
-		user.Birthday = data.Birthday
-	}
-	if data.Street != "" {
-		user.Street = data.Street
-	}
-	if data.Barangay != "" {
-		user.Barangay = data.Barangay
-	}
-	if data.City != "" {
-		user.City = data.City
-	}
-
-	// Save updated user
-	err = s.UserRepo.UpdateUser(ctx, user)
-	if err != nil {
+	if err := s.UserRepo.UpdateUser(ctx, user); err != nil {
 		return nil, err
 	}
 
