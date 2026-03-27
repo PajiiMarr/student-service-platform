@@ -45,7 +45,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       cookies.forEach((cookie) => headers.append("Set-Cookie", cookie));
     }
 
-    return redirect("/profiling", { headers });
+    return redirect("/student/profiling/", { headers });
   } catch (error: any) {
     const errorMessage =
       error.response?.data?.message || "Something went wrong";

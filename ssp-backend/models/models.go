@@ -1,3 +1,4 @@
+// models/user.go
 package models
 
 import "gorm.io/gorm"
@@ -5,17 +6,35 @@ import "gorm.io/gorm"
 type User struct {
 	gorm.Model
 	Username       string `json:"username"`
-	Email      string `json:"email" gorm:"unique"`
-	Password   string `json:"password"`
-	FirstName  string `json:"first_name"`
-	MiddleName string `json:"middle_name"`
-	LastName   string `json:"last_name"`
-	Birthday   string `json:"birthday"`
-	Street     string `json:"street"`
-	Barangay   string `json:"barangay"`
-	City       string `json:"city"`
+	Email          string `json:"email" gorm:"unique"`
+	Password       string `json:"password"`
+	FirstName      string `json:"first_name"`
+	MiddleName     string `json:"middle_name"`
+	LastName       string `json:"last_name"`
+	Birthday       string `json:"birthday"`
+	Street         string `json:"street"`
+	Barangay       string `json:"barangay"`
+	City           string `json:"city"`
+	Role           string `json:"role" gorm:"default:'student'"` // "user", "student", "admin"
 
 	Medias []Media `gorm:"polymorphic:Owner;"`
+}
+
+func (u *User) IsAdmin() bool {
+	return u.Role == "admin"
+}
+
+func (u *User) IsStudent() bool {
+	return u.Role == "student"
+}
+
+func (u *User) HasRole(roles ...string) bool {
+	for _, role := range roles {
+		if u.Role == role {
+			return true
+		}
+	}
+	return false
 }
 
 type Admin struct {

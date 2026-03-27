@@ -9,6 +9,13 @@ type AuthJWT struct {
 	JWTSecret []byte
 }
 
+type JWTClaims struct {
+	UserID uint   `json:"user_id"`
+	Email  string `json:"email"`
+	Role   string `json:"role"`
+	jwt.RegisteredClaims
+}
+
 func (s *AuthJWT) GenerateJWT(userID uint) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
@@ -16,6 +23,24 @@ func (s *AuthJWT) GenerateJWT(userID uint) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(s.JWTSecret)
+}
 
-	return token.SignedString(s.JWTSecret)	
+func (s *AuthJWT) ValidateJWT(tokenString string) (*JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrSignatureInvalid
+		}
+		return s.JWTSecret, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, jwt.ErrTokenInvalidClaims
 }

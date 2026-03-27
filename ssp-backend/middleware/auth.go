@@ -1,3 +1,4 @@
+// middleware/auth.go
 package middleware
 
 import (
@@ -9,13 +10,11 @@ import (
     "strings"
 
     "github.com/gin-gonic/gin"
-    "github.com/golang-jwt/jwt/v5"
 )
 
 // AuthMiddleware creates the authentication middleware
 func AuthMiddleware(authJwt *auth.AuthJWT, userRepo *repository.UserRepository) gin.HandlerFunc {
     return func(c *gin.Context) {
-        // Extract token from Authorization header or cookie
         tokenString := extractToken(c)
         
         if tokenString == "" {
@@ -24,39 +23,77 @@ func AuthMiddleware(authJwt *auth.AuthJWT, userRepo *repository.UserRepository) 
             return
         }
 
-        // Parse and validate JWT
-        claims, err := parseAndValidateJWT(tokenString, authJwt)
+        // Parse and validate JWT with role claims
+        claims, err := authJwt.ValidateJWT(tokenString)
         if err != nil {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
             c.Abort()
             return
         }
 
-        // Extract user ID from claims
-        userID, err := extractUserIDFromClaims(claims)
+        // Fetch user from database to ensure they still exist and role hasn't changed
+        user, err := fetchUserByID(c, userRepo, claims.UserID)
         if err != nil {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
             c.Abort()
             return
         }
 
-        // Fetch user from database
-        user, err := fetchUserByID(c, userRepo, userID)
-        if err != nil {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+        // Verify role matches (in case role was changed in DB after token was issued)
+        if user.Role != claims.Role {
+            // Role mismatch - user's role changed, need new token
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Role changed, please login again"})
             c.Abort()
             return
         }
 
-        // Set user in context and continue
+        // Set user and claims in context
         setUserInContext(c, user)
+        c.Set("role", user.Role)
+        c.Set("email", user.Email)
         c.Next()
     }
 }
 
-// extractToken extracts the token from Authorization header or cookie
+// Role-based authorization middleware
+func RequireRole(allowedRoles ...string) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        user, exists := GetAuthenticatedUser(c)
+        if !exists {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+            c.Abort()
+            return
+        }
+
+        for _, role := range allowedRoles {
+            if user.Role == role {
+                c.Next()
+                return
+            }
+        }
+
+        c.JSON(http.StatusForbidden, gin.H{
+            "error": fmt.Sprintf("Access denied. Required roles: %v", allowedRoles),
+        })
+        c.Abort()
+    }
+}
+
+// Specific role middlewares for convenience
+func RequireAdmin() gin.HandlerFunc {
+    return RequireRole("admin")
+}
+
+func RequireStudent() gin.HandlerFunc {
+    return RequireRole("student")
+}
+
+func RequireStudentOrAdmin() gin.HandlerFunc {
+    return RequireRole("student", "admin")
+}
+
+// Extract token from Authorization header or cookie
 func extractToken(c *gin.Context) string {
-    // First try to get token from Authorization header
     authHeader := c.GetHeader("Authorization")
     if authHeader != "" {
         parts := strings.Split(authHeader, " ")
@@ -65,63 +102,19 @@ func extractToken(c *gin.Context) string {
         }
     }
     
-    // If no token in header, try to get from cookie
     cookie, err := c.Cookie("auth_token")
     if err == nil && cookie != "" {
-        fmt.Println("Found token in cookie")
         return cookie
     }
     
     return ""
 }
 
-// parseAndValidateJWT parses and validates the JWT token
-func parseAndValidateJWT(tokenString string, authJwt *auth.AuthJWT) (jwt.MapClaims, error) {
-    token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-            return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-        }
-        return authJwt.JWTSecret, nil
-    })
-
-    if err != nil {
-        return nil, fmt.Errorf("invalid or expired token: %v", err)
-    }
-
-    claims, ok := token.Claims.(jwt.MapClaims)
-    if !ok || !token.Valid {
-        return nil, fmt.Errorf("invalid token claims")
-    }
-
-    return claims, nil
-}
-
-// extractUserIDFromClaims extracts the user ID from JWT claims
-func extractUserIDFromClaims(claims jwt.MapClaims) (uint, error) {
-    userIDRaw, exists := claims["user_id"]
-    if !exists {
-        return 0, fmt.Errorf("user_id missing in token claims")
-    }
-
-    switch v := userIDRaw.(type) {
-    case float64:
-        return uint(v), nil
-    case int:
-        return uint(v), nil
-    case int64:
-        return uint(v), nil
-    case uint:
-        return v, nil
-    default:
-        return 0, fmt.Errorf("invalid user_id type in claims")
-    }
-}
-
 // fetchUserByID retrieves the user from the database
 func fetchUserByID(c *gin.Context, userRepo *repository.UserRepository, userID uint) (*models.User, error) {
     user, err := userRepo.GetUserByID(c.Request.Context(), userID)
     if err != nil {
-        return nil, fmt.Errorf("database error: %v", err)
+        return nil, err
     }
     if user == nil {
         return nil, fmt.Errorf("user not found")
@@ -133,9 +126,10 @@ func fetchUserByID(c *gin.Context, userRepo *repository.UserRepository, userID u
 func setUserInContext(c *gin.Context, user *models.User) {
     c.Set("user", user)
     c.Set("user_id", user.ID)
+    c.Set("role", user.Role)
 }
 
-// GetAuthenticatedUser retrieves the authenticated user from context
+// Helper functions to get user info from context
 func GetAuthenticatedUser(c *gin.Context) (*models.User, bool) {
     user, exists := c.Get("user")
     if !exists {
@@ -145,7 +139,6 @@ func GetAuthenticatedUser(c *gin.Context) (*models.User, bool) {
     return userObj, ok
 }
 
-// GetAuthenticatedUserID retrieves the authenticated user ID from context
 func GetAuthenticatedUserID(c *gin.Context) (uint, bool) {
     userID, exists := c.Get("user_id")
     if !exists {
@@ -153,4 +146,13 @@ func GetAuthenticatedUserID(c *gin.Context) (uint, bool) {
     }
     userIDUint, ok := userID.(uint)
     return userIDUint, ok
+}
+
+func GetAuthenticatedUserRole(c *gin.Context) (string, bool) {
+    role, exists := c.Get("role")
+    if !exists {
+        return "", false
+    }
+    roleStr, ok := role.(string)
+    return roleStr, ok
 }

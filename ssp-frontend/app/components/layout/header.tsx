@@ -6,7 +6,7 @@ export function Header() {
       <nav className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           <Link to="/" className="text-xl font-bold">
-            Your App
+            Student Service Platform
           </Link>
           
           <div className="space-x-4">

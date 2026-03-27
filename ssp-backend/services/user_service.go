@@ -18,6 +18,22 @@ func (s *UserService) GetUsers() ([]models.User, error) {
 	return s.UserRepo.GetAllUsers()
 }
 
+func (s *UserService) AuthenticateUser(ctx context.Context, username, password string) (*models.User, error) {
+	// Find user by username or email
+	user, err := s.UserRepo.GetUserByUsernameOrEmail(ctx, username)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	// Compare password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return nil, errors.New("invalid password")
+	}
+
+	return user, nil
+}
+
 func (s *UserService) SignupUser(ctx context.Context, user *models.User) error {
 	existing, err := s.UserRepo.GetUserByEmail(ctx, user.Email)
 	if err != nil && existing.ID != 0 {
@@ -70,3 +86,5 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID uint, update
 
 	return user, nil
 }
+
+
