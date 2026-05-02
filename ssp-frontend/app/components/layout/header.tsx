@@ -10,11 +10,14 @@ export function Header() {
           </Link>
           
           <div className="space-x-4">
-            <Link to="/dashboard" className="hover:text-blue-600">
-              Dashboard
+            <Link to="/about" className="hover:text-blue-600">
+              About
             </Link>
             <Link to="/profile" className="hover:text-blue-600">
               Profile
+            </Link>
+            <Link to="/signin" className="hover:text-blue-600">
+              Sign In
             </Link>
             <button className="text-red-600 hover:text-red-800">
               Logout
