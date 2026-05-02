@@ -45,7 +45,7 @@ export default function ProfilingForm({ fetcher }: { fetcher: any }) {
   }, [errors]);
 
   return (
-    <div className="flex justify-center items-center w-full h-full">
+    <div className="flex justify-center items-center min-h-[calc(100vh-8rem)] w-full">
       <fetcher.Form
         method="put"
         className="p-7 rounded-lg lg:shadow-lg w-full lg:w-1/3"
