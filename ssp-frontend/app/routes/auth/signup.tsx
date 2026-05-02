@@ -13,6 +13,31 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
+  // Simply check if the auth cookie exists
+  const cookieHeader = request.headers.get("Cookie");
+  
+  // Look for your auth cookie name (adjust based on your backend)
+  // Common names: "token", "auth_token", "jwt", "ssp_session"
+  if (cookieHeader) {
+    // You can check for specific cookie patterns
+    const hasAuthCookie = cookieHeader.includes("token") || 
+                          cookieHeader.includes("auth") ||
+                          cookieHeader.includes("jwt");
+    
+    if (hasAuthCookie) {
+      // Try to verify with a protected endpoint, but don't rely on it
+      try {
+        const api = serverAxios(request);
+        await api.get("/api/protected/profiling");
+        return redirect("/student/profiling/");
+      } catch (error) {
+        // If the protected endpoint fails, the token might be invalid
+        // Allow access to signup
+        return null;
+      }
+    }
+  }
+  
   return null;
 }
 

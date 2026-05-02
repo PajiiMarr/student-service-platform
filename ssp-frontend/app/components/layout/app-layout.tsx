@@ -3,9 +3,9 @@ import { Header } from "./header";
 import { Footer } from "./footer";
 
 const EXEMPTED_PATTERNS = [
-//   /^\/login$/,
-//   /^\/signup$/,
-  /^\/profiling$/,
+  /^\/profiling\/?$/,  // Matches both /profiling and /profiling/
+  /^\/signup\/?$/,  // Matches both /profiling and /profiling/
+  /^\/student\/profiling\/?$/,  // Matches both /student/profiling and /student/profiling/
   /^\/auth\//,
   /^\/api\//,
 ];
