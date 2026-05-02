@@ -5,7 +5,6 @@ import (
 	"backend/middleware"
 	"backend/models"
 	"backend/services"
-	"backend/utils"
 	"fmt"
 	"net/http"
 
@@ -28,33 +27,30 @@ func (h *UserHandler) SigninUser(c *gin.Context) {
 		return
 	}
 
-	// Debug: Log the incoming request
-	fmt.Printf("Signin attempt - Username: %s, Password length: %d\n",
-		credentials.Username, len(credentials.Password))
-
-	// Authenticate user
 	user, err := h.UserService.AuthenticateUser(c.Request.Context(), credentials.Username, credentials.Password)
 	if err != nil {
-		// Debug: Log the actual error
-		fmt.Printf("Authentication failed: %v\n", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
 	}
 
-	// Debug: Log successful authentication
-	fmt.Printf("User authenticated: ID=%d, Role=%s\n", user.ID, user.Role)
-
-	// Generate JWT token
-	token, err := h.AuthService.GenerateJWT(user.ID)
+	// Pass the role to GenerateJWT
+	token, err := h.AuthService.GenerateJWT(user.ID, user.Role) // ← Added user.Role
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to generate token: %v", err)})
 		return
 	}
 
-	// Set auth cookie
-	utils.SetAuthCookie(c.Writer, token)
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(
+		"auth_token",
+		token,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
 
-	// Return user info and token
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login successful",
 		"user": gin.H{
@@ -81,19 +77,35 @@ func (h *UserHandler) SignupUser(c *gin.Context) {
 		return
 	}
 
-	token, err := h.AuthService.GenerateJWT(user.ID)
+	token, err := h.AuthService.GenerateJWT(user.ID, user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Failed to generate token: %v", err)})
 		return
 	}
 
-	utils.SetAuthCookie(c.Writer, token)
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(
+		"auth_token",
+		token,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
 
-	c.JSON(http.StatusCreated, gin.H{"user": user})
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "User created successfully",
+		"user": gin.H{
+			"id":       user.ID,
+			"email":    user.Email,
+			"username": user.Username,
+			"role":     user.Role,
+		},
+	})
 }
 
 func (h *UserHandler) GetProfilingUser(c *gin.Context) {
-	// Get authenticated user from context
 	user, exists := middleware.GetAuthenticatedUser(c)
 
 	if !exists {
