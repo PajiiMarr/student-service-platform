@@ -11,10 +11,9 @@ func Run(db *gorm.DB) {
     
     log.Println("Starting database seeding...")
     
-    // Seed in correct order (due to foreign key constraints)
-    // if err := seeder.SeedCourses(); err != nil {
-    //     log.Fatalf("Failed to seed courses: %v", err)
-    // }
+    if err := seeder.SeedCourses(); err != nil {
+        log.Fatalf("Failed to seed courses: %v", err)
+    }
     
     if err := seeder.SeedUsers(); err != nil {
         log.Fatalf("Failed to seed users: %v", err)

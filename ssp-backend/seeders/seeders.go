@@ -23,6 +23,11 @@ func (s *Seeder) SeedUsers() error {
         User      models.User
         IsAdmin   bool
         IsStudent bool
+        StudentDetails struct {
+            YearLevel uint
+            Section   string
+            CourseID  uint
+        }
     }{
         {
             User: models.User{
@@ -53,6 +58,15 @@ func (s *Seeder) SeedUsers() error {
                 Role:      "student",
             },
             IsStudent: true,
+            StudentDetails: struct {
+                YearLevel uint
+                Section   string
+                CourseID  uint
+            }{
+                YearLevel: 3,
+                Section:   "A",
+                CourseID:  1, // BS Computer Science
+            },
         },
         {
             User: models.User{
@@ -68,6 +82,15 @@ func (s *Seeder) SeedUsers() error {
                 Role:      "student",
             },
             IsStudent: true,
+            StudentDetails: struct {
+                YearLevel uint
+                Section   string
+                CourseID  uint
+            }{
+                YearLevel: 2,
+                Section:   "B",
+                CourseID:  2, // BS Information Technology
+            },
         },
     }
 
@@ -104,13 +127,19 @@ func (s *Seeder) SeedUsers() error {
 
             if userData.IsStudent {
                 student := models.Student{
-                    UserID: userData.User.ID,
-                    // CourseID: 1, // You might want to assign a default course
+                    UserID:    userData.User.ID,
+                    YearLevel: userData.StudentDetails.YearLevel,
+                    Section:   userData.StudentDetails.Section,
+                    CourseID:  userData.StudentDetails.CourseID,
                 }
                 if err := s.DB.Create(&student).Error; err != nil {
                     log.Printf("Warning: Failed to create student record for %s: %v", userData.User.Email, err)
                 } else {
-                    log.Printf("Created student record for: %s", userData.User.Email)
+                    log.Printf("Created student record for: %s (Year: %d, Section: %s, CourseID: %d)", 
+                        userData.User.Email, 
+                        student.YearLevel, 
+                        student.Section, 
+                        student.CourseID)
                 }
             }
         } else {
@@ -162,3 +191,4 @@ func (s *Seeder) SeedCourses() error {
     
     return nil
 }
+

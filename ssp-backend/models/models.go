@@ -45,6 +45,8 @@ type Admin struct {
 
 type Student struct {
 	gorm.Model
+	YearLevel uint
+	Section string
 	UserID uint
 	User   User `gorm:"foreignKey:UserID"`
 
