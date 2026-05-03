@@ -5,17 +5,17 @@ import "gorm.io/gorm"
 
 type User struct {
 	gorm.Model
-	Username       string `json:"username"`
-	Email          string `json:"email" gorm:"unique"`
-	Password       string `json:"password"`
-	FirstName      string `json:"first_name"`
-	MiddleName     string `json:"middle_name"`
-	LastName       string `json:"last_name"`
-	Birthday       string `json:"birthday"`
-	Street         string `json:"street"`
-	Barangay       string `json:"barangay"`
-	City           string `json:"city"`
-	Role           string `json:"role" gorm:"default:'student'"` // "user", "student", "admin"
+	Username   string `json:"username"`
+	Email      string `json:"email" gorm:"unique"`
+	Password   string `json:"password"`
+	FirstName  string `json:"first_name"`
+	MiddleName string `json:"middle_name"`
+	LastName   string `json:"last_name"`
+	Birthday   string `json:"birthday"`
+	Street     string `json:"street"`
+	Barangay   string `json:"barangay"`
+	City       string `json:"city"`
+	Role       string `json:"role" gorm:"default:'student'"` // "user", "student", "admin"
 
 	Medias []Media `gorm:"polymorphic:Owner;"`
 }
@@ -46,9 +46,9 @@ type Admin struct {
 type Student struct {
 	gorm.Model
 	YearLevel uint
-	Section string
-	UserID uint
-	User   User `gorm:"foreignKey:UserID"`
+	Section   string
+	UserID    uint
+	User      User `gorm:"foreignKey:UserID"`
 
 	CourseID uint
 	Course   Course `gorm:"foreignKey:CourseID"`
@@ -64,7 +64,8 @@ type Course struct {
 
 type College struct {
 	gorm.Model
-	Name string
+	Name    string
+	Courses []Course `gorm:"foreignKey:CollegeID"`
 }
 
 type Job struct {
@@ -128,7 +129,7 @@ type Withdrawal struct {
 	Wallet   Wallet `gorm:"foreignKey:WalletID"`
 
 	Amount         float64
-	Status         string  // pending, approved, rejected
+	Status         string // pending, approved, rejected
 	TransactionFee float64
 
 	Medias []Media `gorm:"polymorphic:Owner;"`

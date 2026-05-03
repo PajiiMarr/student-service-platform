@@ -129,17 +129,62 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 		return
 	}
 
-	var updateData models.User
+	var updateData struct {
+		// User fields
+		FirstName  string `json:"first_name"`
+		MiddleName string `json:"middle_name"`
+		LastName   string `json:"last_name"`
+		Birthday   string `json:"birthday"`
+		Street     string `json:"street"`
+		Barangay   string `json:"barangay"`
+		City       string `json:"city"`
+		// Student fields
+		CollegeID uint   `json:"college_id"`
+		CourseID  uint   `json:"course_id"`
+		YearLevel uint   `json:"year_level"`
+		Section   string `json:"section"`
+	}
+	
 	if err := c.ShouldBindJSON(&updateData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
-	updatedUser, err := h.UserService.UpdateUserProfile(c.Request.Context(), user.ID, &updateData)
+	// Log received data
+	fmt.Printf("Received data - UserID: %d, CollegeID: %d, CourseID: %d, YearLevel: %d, Section: %s\n",
+		user.ID, updateData.CollegeID, updateData.CourseID, updateData.YearLevel, updateData.Section)
+
+	// Convert to the type expected by the service
+	serviceData := &services.UpdateUserProfileData{
+		FirstName:  updateData.FirstName,
+		MiddleName: updateData.MiddleName,
+		LastName:   updateData.LastName,
+		Birthday:   updateData.Birthday,
+		Street:     updateData.Street,
+		Barangay:   updateData.Barangay,
+		City:       updateData.City,
+		CollegeID:  updateData.CollegeID,
+		CourseID:   updateData.CourseID,
+		YearLevel:  updateData.YearLevel,
+		Section:    updateData.Section,
+	}
+
+	updatedUser, err := h.UserService.UpdateUserProfile(c.Request.Context(), user.ID, serviceData)
 	if err != nil {
+		fmt.Printf("Error updating profile: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully", "user": updatedUser})
+}
+
+func (h *UserHandler) GetCollegesAndCourses(c *gin.Context) {
+	colleges, err := h.UserService.GetCollegesAndCourses(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve colleges and courses: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"colleges": colleges})
 }

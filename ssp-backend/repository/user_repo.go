@@ -54,3 +54,9 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id uint) (*models.User
 func (r *UserRepository) UpdateUser(ctx context.Context, user *models.User) error {
 	return r.DB.WithContext(ctx).Save(user).Error
 }
+
+func (r *UserRepository) GetCollegesAndCourses(ctx context.Context) ([]models.College, error) {
+	var colleges []models.College
+	err := r.DB.WithContext(ctx).Preload("Courses").Find(&colleges).Error
+	return colleges, err
+}

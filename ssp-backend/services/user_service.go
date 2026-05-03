@@ -10,8 +10,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Define the struct type outside the method
+type UpdateUserProfileData struct {
+	FirstName  string
+	MiddleName string
+	LastName   string
+	Birthday   string
+	Street     string
+	Barangay   string
+	City       string
+	CollegeID  uint
+	CourseID   uint
+	YearLevel  uint
+	Section    string
+}
+
 type UserService struct {
-	UserRepo *repository.UserRepository
+	UserRepo    *repository.UserRepository
+	StudentRepo *repository.StudentRepository
 }
 
 func (s *UserService) GetUsers() ([]models.User, error) {
@@ -49,7 +65,9 @@ func (s *UserService) SignupUser(ctx context.Context, user *models.User) error {
 	return s.UserRepo.SignupUser(ctx, user)
 }
 
-func (s *UserService) UpdateUserProfile(ctx context.Context, userID uint, updateData *models.User) (*models.User, error) {
+func (s *UserService) UpdateUserProfile(ctx context.Context, userID uint, updateData *UpdateUserProfileData) (*models.User, error) {
+	
+	// Get user
 	user, err := s.UserRepo.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -58,6 +76,7 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID uint, update
 		return nil, errors.New("user not found")
 	}
 
+	// Update user fields
 	if updateData.FirstName != "" {
 		user.FirstName = updateData.FirstName
 	}
@@ -80,11 +99,34 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID uint, update
 		user.City = updateData.City
 	}
 
+	// Update user
 	if err := s.UserRepo.UpdateUser(ctx, user); err != nil {
 		return nil, err
 	}
 
+	// Check if StudentRepo is nil
+	if s.StudentRepo == nil {
+		return nil, errors.New("StudentRepo is not initialized in UserService")
+	}
+
+	// Log the data being saved
+	fmt.Printf("Attempting to save student record - UserID: %d, CourseID: %d, YearLevel: %d, Section: %s\n", 
+		userID, updateData.CourseID, updateData.YearLevel, updateData.Section)
+
+	// Update or create student
+	if err := s.StudentRepo.UpdateOrCreateStudent(ctx, userID, updateData.CourseID, updateData.YearLevel, updateData.Section); err != nil {
+		return nil, errors.New("failed to save student record: " + err.Error())
+	}
+
+	fmt.Println("Student record saved successfully")
+
 	return user, nil
 }
 
-
+func (s *UserService) GetCollegesAndCourses(ctx context.Context) ([]models.College, error) {
+	colleges, err := s.UserRepo.GetCollegesAndCourses(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return colleges, nil
+}

@@ -1,6 +1,6 @@
 import type { Route } from "./+types/profiling";
 import { redirect, data } from "react-router";
-import { useFetcher } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import cleanFormData from "~/utils/clean/clean-form-data";
 import { serverAxios } from "~/utils/handler/server-axios";
 import ProfilingForm from "~/components/user/profiling-form";
@@ -16,7 +16,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   try {
     const api = serverAxios(request);
     const response = await api.get("/api/protected/profiling");
-    return { user: response.data.user };
+    const response_colleges_and_courses = await api.get("/api/protected/colleges-courses");
+
+    return { 
+      user: response.data.user,
+      colleges: response_colleges_and_courses.data.colleges
+    };
   } catch (error: any) {
     if (error.response?.status === 401) {
       return redirect("/login");
@@ -38,6 +43,10 @@ export async function action({ request, context }: Route.ActionArgs) {
     street,
     barangay,
     city,
+    college,
+    course,
+    year_level,
+    section,
   } = cleaned;
 
   // Calculate age from birthday
@@ -61,8 +70,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (!birthday?.trim()) errors.birthday = "Birthday is required!";
   if (!street?.trim()) errors.street = "Street is required!";
   if (!barangay?.trim()) errors.barangay = "Barangay is required!";
-  if (age !== null && age < 18)
-    errors.age = "You must be at least 18 years old to proceed!";
+  if (age !== null && age < 18) errors.age = "You must be at least 18 years old to proceed!";
+  if (!course?.trim()) errors.course = "Course is required!";
+  if (!year_level?.trim()) errors.year_level = "Year level is required!";
+  if (!section?.trim()) errors.section = "Section is required!";
 
   if (Object.keys(errors).length > 0) {
     return data({ errors }, { status: 400 });
@@ -76,11 +87,14 @@ export async function action({ request, context }: Route.ActionArgs) {
     street,
     barangay,
     city: city || "City of Zamboanga",
+    college_id: parseInt(college),
+    course_id: parseInt(course),
+    year_level: parseInt(year_level),
+    section,
   };
 
   try {
     const api = serverAxios(request);
-    // ↓ Send as JSON explicitly
     const response = await api.put("/api/protected/profiling", payload, {
       headers: { "Content-Type": "application/json" },
     });
@@ -97,5 +111,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function Profiling() {
   const fetcher = useFetcher();
-  return <ProfilingForm fetcher={fetcher} />;
+  const loaderData = useLoaderData();
+
+  return <ProfilingForm fetcher={fetcher} collegesData={loaderData?.colleges || []} />;
 }

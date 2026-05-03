@@ -24,8 +24,16 @@ func SetupRoutes(db *gorm.DB) *gin.Engine {
 	cfg := config.LoadConfig()
 	authService := &auth.AuthJWT{JWTSecret: cfg.JWTSecret}
 
+	// Initialize repositories
 	userRepo := &repository.UserRepository{DB: db}
-	userService := &services.UserService{UserRepo: userRepo}
+	studentRepo := &repository.StudentRepository{DB: db}  // ← Add this
+	
+	// Initialize services with both repositories
+	userService := &services.UserService{
+		UserRepo:    userRepo,
+		StudentRepo: studentRepo,  // ← Add this line
+	}
+	
 	userHandler := &handlers.UserHandler{
 		UserService: userService,
 		AuthService: authService,
@@ -69,6 +77,7 @@ func registerUserRoutes(r *gin.Engine, userHandler *handlers.UserHandler, authSe
 		{
 			protected.GET("/profiling", userHandler.GetProfilingUser)
 			protected.PUT("/profiling", userHandler.UpdateUserProfile)
+			protected.GET("/colleges-courses", userHandler.GetCollegesAndCourses)
 			// Add more protected routes here
 		}
 	}
