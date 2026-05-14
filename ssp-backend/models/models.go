@@ -1,7 +1,10 @@
 // models/user.go
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 type User struct {
 	gorm.Model
@@ -95,6 +98,9 @@ type Message struct {
 	SenderID   uint
 	ReceiverID uint
 	Content    string
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Notification struct {
@@ -104,6 +110,20 @@ type Notification struct {
 
 	Content string
 	Read    bool
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Logs struct {
+	gorm.Model
+	UserID uint
+	User   User `gorm:"foreignKey:UserID"`
+
+	Action    string
+	Content   string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Wallet struct {
