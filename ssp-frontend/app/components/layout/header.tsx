@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { House } from "lucide-react";
 
 export function Header() {
   return (
@@ -6,9 +7,15 @@ export function Header() {
       <nav className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           <Link to="/" className="text-xl font-bold">
-            Student Service Platform
+            Logo Placeholder
           </Link>
-          
+
+          <div>
+            <Link to="/student">
+              <House />
+            </Link>
+          </div>
+
           <div className="space-x-4">
             <Link to="/about" className="hover:text-blue-600">
               About
@@ -19,9 +26,7 @@ export function Header() {
             <Link to="/signin" className="hover:text-blue-600">
               Sign In
             </Link>
-            <button className="text-red-600 hover:text-red-800">
-              Logout
-            </button>
+            <button className="text-red-600 hover:text-red-800">Logout</button>
           </div>
         </div>
       </nav>
