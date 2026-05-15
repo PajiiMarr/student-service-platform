@@ -4,8 +4,9 @@ import (
 	"backend/config"
 	"backend/models"
 	"backend/routes"
-	"gorm.io/gorm"
 	"log"
+
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -32,6 +33,7 @@ func autoRunMigrations(db *gorm.DB) {
 	db.AutoMigrate(&models.Application{})
 	db.AutoMigrate(&models.Message{})
 	db.AutoMigrate(&models.Notification{})
+	db.AutoMigrate(&models.Logs{})
 	db.AutoMigrate(&models.Wallet{})
 	db.AutoMigrate(&models.Transaction{})
 	db.AutoMigrate(&models.Withdrawal{})
