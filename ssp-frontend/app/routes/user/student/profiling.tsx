@@ -98,7 +98,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const response = await api.put("/api/protected/profiling", payload, {
       headers: { "Content-Type": "application/json" },
     });
-    return redirect("/dashboard");
+    return redirect("/student");
   } catch (error: any) {
     const errorMessage =
       error.response?.data?.message ||
