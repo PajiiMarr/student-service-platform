@@ -26,21 +26,31 @@ func SetupRoutes(db *gorm.DB) *gin.Engine {
 
 	// Initialize repositories
 	userRepo := &repository.UserRepository{DB: db}
-	studentRepo := &repository.StudentRepository{DB: db}  // ← Add this
-	
+	studentRepo := &repository.StudentRepository{DB: db} // ← Add this
+
 	// Initialize services with both repositories
 	userService := &services.UserService{
 		UserRepo:    userRepo,
-		StudentRepo: studentRepo,  // ← Add this line
+		StudentRepo: studentRepo, // ← Add this line
 	}
-	
+
+	studentService := &services.StudentService{
+		StudentRepo: studentRepo,
+	}
+
 	userHandler := &handlers.UserHandler{
 		UserService: userService,
 		AuthService: authService,
 	}
 
+	studentHandler := &handlers.StudentHandler{
+		StudentService: studentService,
+		AuthService:    authService,
+	}
+
 	// Register routes
 	registerUserRoutes(r, userHandler, authService, userRepo)
+	registerStudentRoutes(r, studentHandler, authService, userRepo)
 
 	return r
 }
@@ -78,7 +88,20 @@ func registerUserRoutes(r *gin.Engine, userHandler *handlers.UserHandler, authSe
 			protected.GET("/profiling", userHandler.GetProfilingUser)
 			protected.PUT("/profiling", userHandler.UpdateUserProfile)
 			protected.GET("/colleges-courses", userHandler.GetCollegesAndCourses)
-			// Add more protected routes here
 		}
+	}
+}
+
+func registerStudentRoutes(r *gin.Engine, studentHandler *handlers.StudentHandler, authService *auth.AuthJWT, userRepo *repository.UserRepository) {
+	// Student API group – all routes require authentication + student role
+	studentGroup := r.Group("/api/student")
+	studentGroup.Use(middleware.AuthMiddleware(authService, userRepo))
+	studentGroup.Use(middleware.RequireStudent())
+	{
+		// studentGroup.GET("/jobs", studentHandler.GetStudentProfile)
+		studentGroup.POST("/jobs", studentHandler.PostJob)
+		// studentGroup.PUT("/profile", studentHandler.UpdateStudentProfile)
+		// studentGroup.GET("/enrollments", studentHandler.GetEnrollments)
+		// Add other student-specific endpoints here
 	}
 }
