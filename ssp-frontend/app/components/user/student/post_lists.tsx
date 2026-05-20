@@ -17,7 +17,7 @@ export default function PostListContainer({ jobs }: PostListContainerProps) {
   if (!jobs || jobs.length === 0) {
     return (
       <div className="w-full lg:w-[50%] p-4 text-center text-gray-500">
-        No job posts yet. Be the first to create one! test commit
+        No job posts yet. Be the first to create one!
       </div>
     );
   }
