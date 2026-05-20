@@ -70,3 +70,7 @@ func (r *StudentRepository) UpdateOrCreateStudent(ctx context.Context, userID ui
 	log.Printf("Successfully created student record with ID: %d", student.ID)
 	return nil
 }
+
+func (r *StudentRepository) PostJob(ctx context.Context, job *models.Job) error {
+	return r.DB.WithContext(ctx).Create(job).Error
+}
