@@ -1,9 +1,11 @@
 import type { Route } from "./+types/home";
 import { redirect } from "react-router";
+import { useFetcher } from "react-router";
+import { useEffect } from "react";
+import { toast } from "sonner";
 import { serverAxios } from "~/utils/handler/server-axios";
 import JobPostContainer from "~/components/user/student/job_post_container";
 import PostListContainer from "~/components/user/student/post_lists";
-import AxiosInstance from "~/utils/handler/axios";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -12,80 +14,74 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   try {
     const api = serverAxios(request);
     const response = await api.get("/api/protected/profiling");
-    const user = response.data.user;
-
-    return {
-      user: response.data.user,
-    };
+    return { user: response.data.user };
   } catch (error: any) {
-    if (error.response?.status === 401) {
-      return redirect("/signin");
-    }
+    if (error.response?.status === 401) return redirect("/signin");
     return { error: error.response?.data?.message || "Failed to load profile" };
   }
 }
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
-  
-  const jobTitle = formData.get("job-title");
-  const jobDescription = formData.get("job-description");
-  const jobAmount = formData.get("job-amount");
-  const jobStatus = formData.get("job-status");
-  const jobTerms = formData.get("job-terms");
-
-  // Validate required fields
-  if (!jobTitle || !jobDescription || !jobAmount || !jobTerms) {
-    return { 
-      error: "Please fill in all required fields and accept the terms" 
-    };
-  }
-
-  // Validate amount is positive number
-  const amount = parseFloat(jobAmount as string);
-  if (isNaN(amount) || amount <= 0) {
-    return { error: "Please enter a valid positive amount" };
-  }
+  const jobTitle = formData.get("title");
+  const jobDescription = formData.get("description");
+  const jobAmount = formData.get("amount_offer");
 
   try {
     const api = serverAxios(request);
-    const response = await api.post("/api/protected/student/jobs", {
+    const response = await api.post("/api/student/jobs", {
       title: jobTitle,
       description: jobDescription,
-      amount: amount,
-      status: jobStatus || "open",
+      amount_offer: parseFloat(jobAmount as string),
     });
 
     if (response.data.success) {
-      return { 
-        success: true, 
-        message: "Job post created successfully!",
-        job: response.data.job 
+      return {
+        success: true,
+        message: response.data.message || "Job post created successfully!",
+        job: response.data.job,
       };
     } else {
       return { error: response.data.message || "Failed to create job post" };
     }
   } catch (error: any) {
     console.error("Error creating job post:", error);
-    
-    if (error.response?.status === 401) {
-      return redirect("/signin");
-    }
-    
-    return { 
-      error: error.response?.data?.message || "An error occurred while creating the job post" 
+    if (error.response?.status === 401) return redirect("/signin");
+    return {
+      error: error.response?.data?.message || "An error occurred while creating the job post",
     };
   }
 }
 
 export default function Home() {
+  const fetcher = useFetcher();
+
+  // Show toast when the fetcher completes
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data) {
+      if (fetcher.data.success) {
+        toast.success(fetcher.data.message || "Job post created successfully!", {
+          description: "Your job posting has been published.",
+          duration: 4000,
+          position: "bottom-right",
+        });
+      } else if (fetcher.data.error) {
+        toast.error(fetcher.data.error, {
+          description: "Please check your input and try again.",
+          duration: 5000,
+          position: "bottom-right",
+        });
+      }
+    }
+  }, [fetcher.state, fetcher.data]);
+
   return (
     <div className="min-h-full w-full flex flex-col items-center justify-center p-6 border">
-      <JobPostContainer />
+      <JobPostContainer fetcher={fetcher} />
       <PostListContainer />
     </div>
   );

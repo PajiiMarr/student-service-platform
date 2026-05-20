@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router";
 import { useState } from "react";
-import { useFetcher } from "react-router";
+import type { FetcherWithComponents } from "react-router";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import {
   AlertDialog,
@@ -18,7 +18,6 @@ import {
   DrawerClose,
   DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -26,136 +25,103 @@ import {
 import { Button } from "~/components/ui/button";
 import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
-  FieldSeparator,
   FieldSet,
-} from "~/components/ui/field"
-import { Checkbox } from "~/components/ui/checkbox"
-import { Textarea } from "~/components/ui/textarea"
-import { Input } from "~/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
+} from "~/components/ui/field";
+import { Textarea } from "~/components/ui/textarea";
+import { Input } from "~/components/ui/input";
 import { useIsMobile } from "~/hooks/use-mobile";
-import { toast } from "sonner";
 
-export default function JobPostContainer() {
-  const isMobile = useIsMobile();
-  const [open, setOpen] = useState(false);
-  const fetcher = useFetcher();
-  const isSubmitting = fetcher.state === "submitting";
+interface JobPostContainerProps {
+  fetcher: FetcherWithComponents<any>;
+}
 
-  // Handle submission response
-  React.useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data) {
-      if (fetcher.data.success) {
-        toast.success(fetcher.data.message || "Job post created successfully!", {
-          description: "Your job posting has been published.",
-          duration: 4000,
-        });
-        setOpen(false);
-        // Reset form if needed
-        const form = document.getElementById("job-post-form") as HTMLFormElement;
-        if (form) form.reset();
-      } else if (fetcher.data.error) {
-        toast.error(fetcher.data.error, {
-          description: "Please check your input and try again.",
-          duration: 5000,
-        });
-      }
-    }
-  }, [fetcher.state, fetcher.data]);
+interface FormErrors {
+  title?: string;
+  description?: string;
+  amount_offer?: string;
+}
 
-  const FormContent = () => (
-    <fetcher.Form 
-      method="post" 
-      id="job-post-form"
-      className="space-y-4 py-4"
-    >
+interface FormContentProps {
+  errors: FormErrors;
+  isSubmitting: boolean;
+  isMobile: boolean;
+  setErrors: React.Dispatch<React.SetStateAction<FormErrors>>;
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+}
+
+function FormContent({
+  errors,
+  isSubmitting,
+  isMobile,
+  setErrors,
+  handleSubmit,
+}: FormContentProps) {
+  return (
+    <form onSubmit={handleSubmit} id="job-post-form" className="space-y-4 py-4">
       <FieldGroup>
         <FieldSet>
           <Field>
-            <FieldLabel htmlFor="job-title">Job Title</FieldLabel>
+            <FieldLabel htmlFor="title">Job Title</FieldLabel>
             <Input
-              id="job-title"
-              name="job-title"
+              id="title"
+              name="title"
               placeholder="e.g., Web Developer, Designer, Tutor"
-              required
               disabled={isSubmitting}
+              aria-invalid={!!errors.title}
+              onChange={() =>
+                errors.title &&
+                setErrors((prev) => ({ ...prev, title: undefined }))
+              }
             />
+            {errors.title && (
+              <p className="text-sm text-red-600 mt-1">{errors.title}</p>
+            )}
           </Field>
-
           <Field>
-            <FieldLabel htmlFor="job-description">Description</FieldLabel>
+            <FieldLabel htmlFor="description">Description</FieldLabel>
             <Textarea
-              id="job-description"
-              name="job-description"
+              id="description"
+              name="description"
               placeholder="Describe the job responsibilities, requirements, and expectations..."
               className="resize-none min-h-[100px]"
-              required
               disabled={isSubmitting}
+              aria-invalid={!!errors.description}
+              onChange={() =>
+                errors.description &&
+                setErrors((prev) => ({ ...prev, description: undefined }))
+              }
             />
+            {errors.description && (
+              <p className="text-sm text-red-600 mt-1">{errors.description}</p>
+            )}
           </Field>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div>
             <Field>
-              <FieldLabel htmlFor="job-amount">
-                Amount Offer (₱)
-              </FieldLabel>
+              <FieldLabel htmlFor="amount_offer">Amount Offer (₱)</FieldLabel>
               <Input
-                id="job-amount"
-                name="job-amount"
+                id="amount_offer"
+                name="amount_offer"
                 type="number"
                 step="0.01"
                 placeholder="e.g., 500.00"
-                required
                 disabled={isSubmitting}
+                aria-invalid={!!errors.amount_offer}
+                onChange={() =>
+                  errors.amount_offer &&
+                  setErrors((prev) => ({ ...prev, amount_offer: undefined }))
+                }
               />
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="job-status">Status</FieldLabel>
-              <Select name="job-status" defaultValue="open" disabled={isSubmitting}>
-                <SelectTrigger id="job-status">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="in-progress">
-                      In Progress
-                    </SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              {errors.amount_offer && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.amount_offer}
+                </p>
+              )}
             </Field>
           </div>
-
-          <Field orientation="horizontal">
-            <Checkbox 
-              id="job-terms" 
-              name="job-terms"
-              required 
-              disabled={isSubmitting}
-            />
-            <FieldLabel htmlFor="job-terms" className="font-normal">
-              I confirm that this job posting follows the platform
-              guidelines
-            </FieldLabel>
-          </Field>
         </FieldSet>
       </FieldGroup>
-
       <AlertDialogFooter>
         {isMobile ? (
           <DrawerClose asChild>
@@ -166,16 +132,88 @@ export default function JobPostContainer() {
         ) : (
           <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
         )}
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="bg-red-700 hover:bg-red-800"
           disabled={isSubmitting}
         >
           {isSubmitting ? "Creating..." : "Create Job Post"}
         </Button>
       </AlertDialogFooter>
-    </fetcher.Form>
+    </form>
   );
+}
+
+export default function JobPostContainer({ fetcher }: JobPostContainerProps) {
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+  const isSubmitting = fetcher.state === "submitting";
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  const validateForm = (formData: FormData): boolean => {
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const amountOffer = formData.get("amount_offer") as string;
+    const newErrors: FormErrors = {};
+
+    if (!title?.trim()) newErrors.title = "Job title is required";
+    else if (title.trim().length < 3)
+      newErrors.title = "Job title must be at least 3 characters";
+    else if (title.trim().length > 100)
+      newErrors.title = "Job title must not exceed 100 characters";
+
+    if (!description?.trim())
+      newErrors.description = "Job description is required";
+    else if (description.trim().length < 10)
+      newErrors.description = "Description must be at least 10 characters";
+    else if (description.trim().length > 2000)
+      newErrors.description = "Description must not exceed 2000 characters";
+
+    if (!amountOffer?.trim())
+      newErrors.amount_offer = "Amount offer is required";
+    else {
+      const amount = parseFloat(amountOffer);
+      if (isNaN(amount)) newErrors.amount_offer = "Amount must be a valid number";
+      else if (amount <= 0)
+        newErrors.amount_offer = "Amount must be greater than 0";
+      else if (amount > 1000000)
+        newErrors.amount_offer = "Amount cannot exceed 1,000,000";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    if (!validateForm(formData)) {
+      const firstErrorField = Object.keys(errors)[0];
+      if (firstErrorField) {
+        document
+          .getElementById(firstErrorField)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        document.getElementById(firstErrorField)?.focus();
+      }
+      return;
+    }
+
+    fetcher.submit(formData, { method: "post" });
+  };
+
+  // Reset form only after successful submission
+  React.useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data?.success) {
+      setOpen(false);
+      const form = document.getElementById("job-post-form") as HTMLFormElement;
+      if (form) form.reset();
+      setErrors({});
+    }
+  }, [fetcher.state, fetcher.data]);
+
+  const formProps = { errors, isSubmitting, isMobile, setErrors, handleSubmit };
 
   return (
     <div className="w-full lg:w-[50%] h-full flex justify-evenly items-center gap-4 bg-gray-100 p-2 py-5 rounded-lg">
@@ -208,7 +246,7 @@ export default function JobPostContainer() {
               </DrawerDescription>
             </DrawerHeader>
             <div className="px-4 overflow-y-auto flex-1">
-              <FormContent />
+              <FormContent {...formProps} />
             </div>
           </DrawerContent>
         </Drawer>
@@ -229,7 +267,7 @@ export default function JobPostContainer() {
                 Fill in the details below to create a new job posting.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <FormContent />
+            <FormContent {...formProps} />
           </AlertDialogContent>
         </AlertDialog>
       )}
