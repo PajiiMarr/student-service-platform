@@ -98,7 +98,7 @@ func registerStudentRoutes(r *gin.Engine, studentHandler *handlers.StudentHandle
 	studentGroup.Use(middleware.AuthMiddleware(authService, userRepo))
 	studentGroup.Use(middleware.RequireStudent())
 	{
-		// studentGroup.GET("/jobs", studentHandler.GetStudentProfile)
+		studentGroup.GET("/jobs", studentHandler.GetJobs)
 		studentGroup.POST("/jobs", studentHandler.PostJob)
 		// studentGroup.PUT("/profile", studentHandler.UpdateStudentProfile)
 		// studentGroup.GET("/enrollments", studentHandler.GetEnrollments)

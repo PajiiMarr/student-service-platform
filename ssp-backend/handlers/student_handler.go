@@ -60,3 +60,17 @@ func (h *StudentHandler) PostJob(c *gin.Context) {
 		"job":     job,
 	})
 }
+
+func (h *StudentHandler) GetJobs(c *gin.Context) {
+	// Get all jobs (ordered by created_at descending)
+	jobs, err := h.StudentService.GetAllJobs(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to retrieve jobs"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"jobs":    jobs,
+	})
+}

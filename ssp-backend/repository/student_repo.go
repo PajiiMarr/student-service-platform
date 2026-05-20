@@ -74,3 +74,11 @@ func (r *StudentRepository) UpdateOrCreateStudent(ctx context.Context, userID ui
 func (r *StudentRepository) PostJob(ctx context.Context, job *models.Job) error {
 	return r.DB.WithContext(ctx).Create(job).Error
 }
+
+func (r *StudentRepository) GetAllJobs(ctx context.Context) ([]models.Job, error) {
+	var jobs []models.Job
+	err := r.DB.WithContext(ctx).
+		Order("created_at DESC").
+		Find(&jobs).Error
+	return jobs, err
+}
