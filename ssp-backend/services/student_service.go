@@ -33,3 +33,8 @@ func (s *StudentService) PostJob(ctx context.Context, job *models.Job) error {
 func (s *StudentService) GetStudentByUserID(ctx context.Context, userID uint) (*models.Student, error) {
 	return s.StudentRepo.GetStudentByUserID(ctx, userID)
 }
+
+
+func (s *StudentService) GetAllJobs(ctx context.Context) ([]models.Job, error) {
+	return s.StudentRepo.GetAllJobs(ctx)
+}

@@ -8,6 +8,7 @@ import {
 } from "react-router";
 import { AppLayout } from "~/components/layout/app-layout";
 import type { Route } from "./+types/root";
+import { Toaster } from "sonner";
 import "./app.css";
 import { Header } from "./components/layout/header";
 import { Footer } from "./components/layout/footer";
@@ -36,6 +37,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster position="bottom-right"/>
         <ScrollRestoration />
         <Scripts />
       </body>
