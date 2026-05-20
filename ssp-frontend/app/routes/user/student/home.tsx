@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import { redirect } from "react-router";
-import { useFetcher } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { serverAxios } from "~/utils/handler/server-axios";
@@ -17,11 +17,21 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   try {
     const api = serverAxios(request);
-    const response = await api.get("/api/protected/profiling");
-    return { user: response.data.user };
+    // Fetch user profile
+    const userResponse = await api.get("/api/protected/profiling");
+    // Fetch all jobs (ordered by created_at)
+    const jobsResponse = await api.get("/api/student/jobs");
+
+    return {
+      user: userResponse.data.user,
+      jobs: jobsResponse.data.jobs || [],
+    };
   } catch (error: any) {
     if (error.response?.status === 401) return redirect("/signin");
-    return { error: error.response?.data?.message || "Failed to load profile" };
+    return {
+      error: error.response?.data?.message || "Failed to load profile",
+      jobs: [],
+    };
   }
 }
 
@@ -59,6 +69,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function Home() {
   const fetcher = useFetcher();
+  const { jobs } = useLoaderData<typeof loader>();
 
   // Show toast when the fetcher completes
   useEffect(() => {
@@ -82,7 +93,7 @@ export default function Home() {
   return (
     <div className="min-h-full w-full flex flex-col items-center justify-center p-6 border">
       <JobPostContainer fetcher={fetcher} />
-      <PostListContainer />
+      <PostListContainer jobs={jobs} />
     </div>
   );
 }
