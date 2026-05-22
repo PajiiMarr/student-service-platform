@@ -62,7 +62,9 @@ export async function action({ request }: Route.ActionArgs) {
     console.error("Error creating job post:", error);
     if (error.response?.status === 401) return redirect("/signin");
     return {
-      error: error.response?.data?.message || "An error occurred while creating the job post",
+      error:
+        error.response?.data?.message ||
+        "An error occurred while creating the job post",
     };
   }
 }
@@ -75,11 +77,14 @@ export default function Home() {
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data) {
       if (fetcher.data.success) {
-        toast.success(fetcher.data.message || "Job post created successfully!", {
-          description: "Your job posting has been published.",
-          duration: 4000,
-          position: "bottom-right",
-        });
+        toast.success(
+          fetcher.data.message || "Job post created successfully!",
+          {
+            description: "Your job posting has been published.",
+            duration: 4000,
+            position: "bottom-right",
+          },
+        );
       } else if (fetcher.data.error) {
         toast.error(fetcher.data.error, {
           description: "Please check your input and try again.",
@@ -93,7 +98,12 @@ export default function Home() {
   return (
     <div className="min-h-full w-full flex flex-col items-center justify-center p-6 border">
       <JobPostContainer fetcher={fetcher} />
-      <PostListContainer jobs={jobs} />
+      <PostListContainer
+        jobs={jobs}
+        onEdit={(job) => console.log("Edit", job)}
+        onDelete={(job) => console.log("Delete", job)}
+        onMarkComplete={(job) => console.log("Complete", job)}
+      />
     </div>
   );
 }
