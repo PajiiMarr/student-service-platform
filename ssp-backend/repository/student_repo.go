@@ -78,6 +78,11 @@ func (r *StudentRepository) PostJob(ctx context.Context, job *models.Job) error 
 func (r *StudentRepository) GetAllJobs(ctx context.Context) ([]models.Job, error) {
 	var jobs []models.Job
 	err := r.DB.WithContext(ctx).
+		Preload("Student", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("User", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, first_name, middle_name, last_name")
+			})
+		}).
 		Order("created_at DESC").
 		Find(&jobs).Error
 	return jobs, err
