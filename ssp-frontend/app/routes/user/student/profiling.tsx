@@ -16,10 +16,16 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   try {
     const api = serverAxios(request);
     const response = await api.get("/api/protected/profiling");
+    const user = response.data.user;
+
+    if (user.first_name && user.last_name && user.birthday) {
+      return redirect("/student/");
+    }
+
     const response_colleges_and_courses = await api.get("/api/protected/colleges-courses");
 
     return { 
-      user: response.data.user,
+      user,
       colleges: response_colleges_and_courses.data.colleges
     };
   } catch (error: any) {

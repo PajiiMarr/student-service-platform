@@ -110,7 +110,6 @@ func (h *UserHandler) SignupUser(c *gin.Context) {
 
 func (h *UserHandler) GetProfilingUser(c *gin.Context) {
 	user, exists := middleware.GetAuthenticatedUser(c)
-
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -118,9 +117,13 @@ func (h *UserHandler) GetProfilingUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
-			"id":       user.ID,
-			"email":    user.Email,
-			"username": user.Username,
+			"id":         user.ID,
+			"email":      user.Email,
+			"username":   user.Username,
+			"first_name": user.FirstName,
+			"last_name":  user.LastName,
+			"birthday":   user.Birthday,
+			"role":       user.Role,
 		},
 	})
 }
