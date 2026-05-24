@@ -5,6 +5,10 @@ export default [
     route('signin', 'routes/auth/signin.tsx'),
     route('signup', 'routes/auth/signup.tsx'),
     
+    route('logout', 'routes/auth/logout.tsx'),
+
+
+    
     ...prefix("admin", [
         index('routes/user/admin/dashboard.tsx'),
         route('users', 'routes/user/admin/users.tsx'),
