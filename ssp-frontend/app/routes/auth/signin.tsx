@@ -7,7 +7,7 @@ import { serverAxios } from "~/utils/handler/server-axios";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Login" },
+    { title: "Signin" },
     { name: "description", content: "Login to your account" },
   ];
 }

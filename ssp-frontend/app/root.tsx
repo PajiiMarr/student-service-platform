@@ -5,6 +5,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "react-router";
 import { AppLayout } from "~/components/layout/app-layout";
 import type { Route } from "./+types/root";
@@ -34,10 +35,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <link rel="icon" type="image/svg+xml" href="/logo.png" />
       </head>
       <body>
         {children}
-        <Toaster position="bottom-right"/>
+        <Toaster position="bottom-right" />
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -45,9 +47,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+export async function loader({ request }: Route.LoaderArgs) {
+  const authToken = request.headers
+    .get("Cookie")
+    ?.match(/auth_token=([^;]+)/)?.[1];
+
+  return { isLoggedIn: !!authToken };
+}
+
 export default function App() {
+  const { isLoggedIn } = useLoaderData() as { isLoggedIn: boolean };
+
   return (
-    <AppLayout>
+    <AppLayout isLoggedIn={isLoggedIn}>
       <Outlet />
     </AppLayout>
   );
@@ -71,7 +83,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   return (
     <main className="min-h-screen border flex-1">
-      <Header />
+      <Header isLoggedIn={false} />
       <section className="w-full h-[87vh] flex flex-col justify-center items-center">
         <h1>{message}</h1>
         <p>{details}</p>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { formatFormErrors } from "~/utils/handler/error-handler";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
+import { Link } from "react-router";
 
 export function SignupForm({ fetcher }: { fetcher: any }) {
   const errors = fetcher.data?.errors;
@@ -147,6 +148,12 @@ export function SignupForm({ fetcher }: { fetcher: any }) {
           >
             {fetcher.state === "submitting" ? "Signing up..." : "Sign up"}
           </button>
+        </div>
+
+        <div className="flex flex-col mt-3 text-center">
+          <Link to="/signin" className="text-blue-500 hover:underline cursor-pointer">
+            Have an account? Sign in
+          </Link>
         </div>
 
         {/* General error */}
