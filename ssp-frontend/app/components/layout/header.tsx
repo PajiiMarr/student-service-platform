@@ -1,39 +1,81 @@
 // app/components/header.tsx
-import { Link, Form } from "react-router";   // <-- Note: Form is from react-router
-import { House } from "lucide-react";
+import { Link, Form } from "react-router";
+import {
+  House,
+  Briefcase,
+  UserCircle,
+  LogOut,
+  PlusCircle,
+  Info,
+  LogIn,
+} from "lucide-react";
 
-export function Header() {
+export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   return (
-    <header className="bg-white shadow-sm">
-      <nav className="container mx-auto px-4 py-4">
-        <div className="flex justify-between items-center">
-          <Link to="/" className="text-xl font-bold">
-            <img src="jobili.svg" alt="" className="w-15 h-10" />
+    <header className="bg-white shadow-sm border-b border-red-100">
+      <nav className="container mx-auto px-4 py-3 flex items-center justify-between">
+        {/* Logo (persisted) */}
+        <Link to="/" className="flex-shrink-0">
+          <img src="jobili.svg" alt="Jobili" className="w-15 h-10" />
+        </Link>
+    
+        <Link
+          to="/student"
+          className="text-gray-600 hover:text-red-700 transition-colors"
+          aria-label="Home"
+        >
+          <House size={20} />
+        </Link>
+
+        {/* Home icon (persisted) */}
+        <div className="flex items-center gap-5">
+          <Link
+            to="/student/jobs"
+            className="text-gray-600 hover:text-red-700 transition-colors flex items-center gap-1"
+            aria-label="Browse Jobs"
+          >
+            <Briefcase size={20} />
           </Link>
 
-          <div>
-            <Link to="/student">
-              <House />
+          {isLoggedIn && (
+            <Link
+              to="/student/jobs/new"
+              className="text-gray-600 hover:text-red-700 transition-colors flex items-center gap-1"
+              aria-label="Post a Job"
+            >
+              <PlusCircle size={20} />
             </Link>
-          </div>
+          )}
 
-          <div className="space-x-4">
-            <Link to="/about" className="hover:text-blue-600">
-              About
-            </Link>
-            <Link to="/profile" className="hover:text-blue-600">
-              Profile
-            </Link>
-            <Link to="/signin" className="hover:text-blue-600">
-              Sign In
-            </Link>
-            {/* Replace the static button with a Form */}
+          <Link
+            to="/profile"
+            className="text-gray-600 hover:text-red-700 transition-colors flex items-center gap-1"
+            aria-label="Profile"
+          >
+            <UserCircle size={20} />
+          </Link>
+
+          {isLoggedIn ? (
             <Form method="post" action="/logout">
-              <button type="submit" className="text-red-600 hover:text-red-800">
-                Logout
+              <button
+                type="submit"
+                className="text-red-600 hover:text-red-800 transition-colors flex items-center gap-1"
+                aria-label="Logout"
+              >
+                <LogOut size={20} />
+                <span className="hidden sm:inline text-sm">Logout</span>
               </button>
             </Form>
-          </div>
+          ) : (
+            <Link
+              to="/signin"
+              className="text-gray-600 hover:text-red-700 transition-colors flex items-center gap-1"
+              aria-label="Sign In"
+            >
+              <LogIn size={20} />
+              <span className="hidden sm:inline text-sm">signin</span>
+            </Link>
+          )}
         </div>
       </nav>
     </header>
