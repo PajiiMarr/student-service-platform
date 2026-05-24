@@ -7,6 +7,7 @@ import (
 	"backend/middleware"
 	"backend/repository"
 	"backend/services"
+	"net/http"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -77,9 +78,20 @@ func registerUserRoutes(r *gin.Engine, userHandler *handlers.UserHandler, authSe
 	api := r.Group("/api")
 	{
 		// Public routes
-		// api.GET("/users", userHandler.GetUsers)
 		api.POST("/signin", userHandler.SigninUser)
 		api.POST("/signup", userHandler.SignupUser)
+		api.POST("/logout", func(c *gin.Context) {
+			c.SetCookie(
+				"auth_token",
+				"",
+				-1,
+				"/",
+				"",
+				false,
+				true,
+			)
+			c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+		})
 
 		// Protected routes (require authentication)
 		protected := api.Group("/protected")
