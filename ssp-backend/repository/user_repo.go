@@ -23,6 +23,8 @@ func (r *UserRepository) GetUserByUsernameOrEmail(ctx context.Context, usernameO
 	return &user, nil
 }
 
+
+
 func (r *UserRepository) GetAllUsers() ([]models.User, error) {
 	var users []models.User
 	result := r.DB.Find(&users)
@@ -30,9 +32,12 @@ func (r *UserRepository) GetAllUsers() ([]models.User, error) {
 }
 
 func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	var user models.User
-	err := r.DB.WithContext(ctx).Where("email = ?", email).First(&user).Error
-	return &user, err
+    var user models.User
+    err := r.DB.WithContext(ctx).Where("email = ?", email).First(&user).Error
+    if errors.Is(err, gorm.ErrRecordNotFound) {
+        return nil, gorm.ErrRecordNotFound
+    }
+    return &user, err
 }
 
 func (r *UserRepository) SignupUser(ctx context.Context, user *models.User) error {

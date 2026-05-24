@@ -18,18 +18,18 @@ type UserHandler struct {
 
 func (h *UserHandler) SigninUser(c *gin.Context) {
 	var credentials struct {
-		Username string `json:"username" binding:"required"`
+		Email string `json:"email" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&credentials); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Username and password are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email and password are required"})
 		return
 	}
 
-	user, err := h.UserService.AuthenticateUser(c.Request.Context(), credentials.Username, credentials.Password)
+	user, err := h.UserService.AuthenticateUser(c.Request.Context(), credentials.Email, credentials.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
@@ -56,6 +56,9 @@ func (h *UserHandler) SigninUser(c *gin.Context) {
 		"user": gin.H{
 			"id":       user.ID,
 			"username": user.Username,
+			"first_name": user.FirstName,
+			"last_name": user.LastName,
+			"birthday": user.Birthday,
 			"email":    user.Email,
 			"role":     user.Role,
 		},

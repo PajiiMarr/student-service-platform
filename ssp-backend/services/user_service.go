@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // Define the struct type outside the method
@@ -34,26 +35,25 @@ func (s *UserService) GetUsers() ([]models.User, error) {
 	return s.UserRepo.GetAllUsers()
 }
 
-func (s *UserService) AuthenticateUser(ctx context.Context, username, password string) (*models.User, error) {
-	// Find user by username or email
-	user, err := s.UserRepo.GetUserByUsernameOrEmail(ctx, username)
+func (s *UserService) AuthenticateUser(ctx context.Context, email, password string) (*models.User, error) {
+	user, err := s.UserRepo.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, errors.New("user not found")
 	}
-
-	// Compare password
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 		return nil, errors.New("invalid password")
 	}
-
 	return user, nil
 }
 
 func (s *UserService) SignupUser(ctx context.Context, user *models.User) error {
 	existing, err := s.UserRepo.GetUserByEmail(ctx, user.Email)
-	if err != nil && existing.ID != 0 {
-		return fmt.Errorf("Email already in use")
+	if err == nil && existing != nil && existing.ID != 0 {
+		return fmt.Errorf("email already in use")
+	}
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
 	}
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
@@ -66,7 +66,7 @@ func (s *UserService) SignupUser(ctx context.Context, user *models.User) error {
 }
 
 func (s *UserService) UpdateUserProfile(ctx context.Context, userID uint, updateData *UpdateUserProfileData) (*models.User, error) {
-	
+
 	// Get user
 	user, err := s.UserRepo.GetUserByID(ctx, userID)
 	if err != nil {
@@ -110,7 +110,7 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID uint, update
 	}
 
 	// Log the data being saved
-	fmt.Printf("Attempting to save student record - UserID: %d, CourseID: %d, YearLevel: %d, Section: %s\n", 
+	fmt.Printf("Attempting to save student record - UserID: %d, CourseID: %d, YearLevel: %d, Section: %s\n",
 		userID, updateData.CourseID, updateData.YearLevel, updateData.Section)
 
 	// Update or create student
