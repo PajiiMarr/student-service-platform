@@ -13,7 +13,6 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  
   // Optional: Check if user is already logged in
   const authToken = request.headers
     .get("Cookie")
@@ -42,13 +41,13 @@ export async function action({ request, context }: Route.ActionArgs) {
   const formData = await request.formData();
   const cleaned = cleanFormData(formData);
   const errors: Record<string, string> = {};
-  const { username, password } = cleaned;
+  const { email, password } = cleaned; // ← now using email
 
   // Input validation
-  if (!username || username.trim().length === 0) {
-    errors.username = "Username is required";
-  } else if (username.length > 100) {
-    errors.username = "Username is too long";
+  if (!email || email.trim().length === 0) {
+    errors.email = "Email is required";
+  } else if (!email.includes("@")) {
+    errors.email = "Please enter a valid email address";
   }
 
   if (!password) {
@@ -61,15 +60,15 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data({ errors }, { status: 400 });
   }
 
+  // Send as "username" because the Go backend expects that field name
   const payload = {
-    username: username.trim(),
-    password: password, // Send as is, backend will hash comparison
+    email: email.trim(),
+    password: password,
   };
 
   try {
     const api = serverAxios(request);
 
-    // FIXED: Use signin endpoint, not signup
     const response = await api.post("/api/signin", payload);
 
     const setCookie = response.headers["set-cookie"];
@@ -81,7 +80,6 @@ export async function action({ request, context }: Route.ActionArgs) {
         // Enhance cookie security if backend didn't set proper attributes
         let enhancedCookie = cookie;
 
-        // Ensure secure flags are set (if not in development)
         if (process.env.NODE_ENV === "production") {
           if (!cookie.includes("Secure")) {
             enhancedCookie += "; Secure";
@@ -106,19 +104,16 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     // Redirect based on role and profiling status
     if (response.data.user.role === "admin") {
-      return redirect("/admin/dashboard", { headers });
+      return redirect("/admin/", { headers });
     } else if (response.data.user.role === "student") {
       if (needsProfiling) {
         return redirect("/student/profiling", { headers });
       }
-      return redirect("/student/dashboard", { headers });
+      return redirect("/student/", { headers });
     }
-
-    // Fallback for user role
-    return redirect("/dashboard", { headers });
   } catch (error: any) {
     // Don't expose specific error details to client
-    let errorMessage = "Invalid username or password";
+    let errorMessage = "Invalid email or password";
     let status = 401;
 
     // Only show specific error for rate limiting or account lockout

@@ -22,23 +22,23 @@ export function LoginForm({ fetcher }: { fetcher: any }) {
       >
         <h2 className="text-2xl font-bold text-center">Login your account</h2>
 
-        {/* Username */}
+        {/* Email */}
         <div className="mb-2 mt-5">
           <div className="flex">
-            <Label htmlFor="username" className="mb-2">
-              Username<span className="text-red-500">*</span>
+            <Label htmlFor="email" className="mb-2">
+              Email<span className="text-red-500">*</span>
             </Label>
-            {fieldErrors?.username && (
+            {fieldErrors?.email && (
               <p className="ms-2 mb-2 text-xs text-red-600 flex items-center">
-                {fieldErrors.username}
+                {fieldErrors.email}
               </p>
             )}
           </div>
           <Input
-            id="username"
-            name="username"
-            type="text"
-            className={fieldErrors?.username ? "border-red-500 bg-red-50" : ""}
+            id="email"
+            name="email"
+            type="email"
+            className={fieldErrors?.email ? "border-red-500 bg-red-50" : ""}
           />
         </div>
 
