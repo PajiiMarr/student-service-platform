@@ -18,7 +18,7 @@ type UserHandler struct {
 
 func (h *UserHandler) SigninUser(c *gin.Context) {
 	var credentials struct {
-		Email string `json:"email" binding:"required"`
+		Email    string `json:"email" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
 
@@ -33,18 +33,36 @@ func (h *UserHandler) SigninUser(c *gin.Context) {
 		return
 	}
 
-	// Pass the role to GenerateJWT
-	token, err := h.AuthService.GenerateJWT(user.ID, user.Role) // ← Added user.Role
+	// Generate both tokens
+	accessToken, err := h.AuthService.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to generate token: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
 		return
 	}
 
+	refreshToken, err := h.AuthService.GenerateRefreshToken(user.ID, user.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
+		return
+	}
+
+	// Set access token cookie (short-lived)
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(
 		"auth_token",
-		token,
-		86400,
+		accessToken,
+		900, // 15 minutes
+		"/",
+		"",
+		false,
+		true,
+	)
+
+	// Set refresh token cookie (long-lived)
+	c.SetCookie(
+		"refresh_token",
+		refreshToken,
+		604800, // 7 days
 		"/",
 		"",
 		false,
@@ -56,13 +74,9 @@ func (h *UserHandler) SigninUser(c *gin.Context) {
 		"user": gin.H{
 			"id":       user.ID,
 			"username": user.Username,
-			"first_name": user.FirstName,
-			"last_name": user.LastName,
-			"birthday": user.Birthday,
 			"email":    user.Email,
 			"role":     user.Role,
 		},
-		"token": token,
 	})
 }
 
@@ -150,7 +164,7 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 		YearLevel uint   `json:"year_level"`
 		Section   string `json:"section"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&updateData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return

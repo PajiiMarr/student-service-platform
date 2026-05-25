@@ -12,9 +12,15 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const headers = new Headers();
+
+  // Clear both cookies
   headers.append(
     "Set-Cookie",
-    "auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax; Max-Age=0"
+    "auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax; Max-Age=0",
+  );
+  headers.append(
+    "Set-Cookie",
+    "refresh_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax; Max-Age=0",
   );
 
   return redirect("/signin", { headers });

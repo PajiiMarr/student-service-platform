@@ -73,7 +73,6 @@ func setupCORS(r *gin.Engine) *gin.Engine {
 	return r
 }
 
-// registerUserRoutes registers all user-related routes
 func registerUserRoutes(r *gin.Engine, userHandler *handlers.UserHandler, authService *auth.AuthJWT, userRepo *repository.UserRepository) {
 	api := r.Group("/api")
 	{
@@ -81,19 +80,46 @@ func registerUserRoutes(r *gin.Engine, userHandler *handlers.UserHandler, authSe
 		api.POST("/signin", userHandler.SigninUser)
 		api.POST("/signup", userHandler.SignupUser)
 		api.POST("/logout", func(c *gin.Context) {
+			c.SetCookie("auth_token", "", -1, "/", "", false, true)
+			c.SetCookie("refresh_token", "", -1, "/", "", false, true)
+			c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+		})
+
+		// Token refresh endpoint
+		api.POST("/refresh", func(c *gin.Context) {
+			refreshToken, err := c.Cookie("refresh_token")
+			if err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "No refresh token"})
+				return
+			}
+
+			claims, err := authService.ValidateJWT(refreshToken)
+			if err != nil || claims.Type != "refresh" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+				return
+			}
+
+			// Generate new access token
+			newAccessToken, err := authService.GenerateAccessToken(claims.UserID, claims.Role)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to refresh token"})
+				return
+			}
+
 			c.SetCookie(
 				"auth_token",
-				"",
-				-1,
+				newAccessToken,
+				900,
 				"/",
 				"",
 				false,
 				true,
 			)
-			c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+
+			c.JSON(http.StatusOK, gin.H{"message": "Token refreshed"})
 		})
 
-		// Protected routes (require authentication)
+		// Protected routes
 		protected := api.Group("/protected")
 		protected.Use(middleware.AuthMiddleware(authService, userRepo))
 		{
