@@ -28,7 +28,7 @@ export function AppLayout({ children, isLoggedIn = false }: { children: React.Re
           </a>
         </div>
       </header>
-      <main>{children}</main>
+      <main className="min-h-[85vh]">{children}</main>
       <footer className="border-t border-gray-100 mt-auto">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-gray-500">
           &copy; {new Date().getFullYear()} Jobili. All rights reserved.
