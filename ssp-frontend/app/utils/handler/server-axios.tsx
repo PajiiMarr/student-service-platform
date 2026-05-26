@@ -1,13 +1,13 @@
-// app/utils/handler/server-axios.ts
 import axios from "axios";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 export function serverAxios(request?: Request) {
   const api = axios.create({
-    baseURL: "http://localhost:8080",
+    baseURL: API_BASE_URL,
     withCredentials: true,
   });
 
-  // Add request interceptor to forward cookies
   if (request) {
     api.interceptors.request.use((config) => {
       const cookie = request.headers.get("Cookie");
@@ -18,20 +18,17 @@ export function serverAxios(request?: Request) {
     });
   }
 
-  // Add response interceptor for automatic token refresh
   api.interceptors.response.use(
     (response) => response,
     async (error) => {
       const originalRequest = error.config;
 
-      // If 401 and not already retried
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
 
         try {
-          // Attempt to refresh the token
           await axios.post(
-            "http://localhost:8080/api/refresh",
+            `${API_BASE_URL}/api/refresh`,
             {},
             {
               withCredentials: true,
@@ -41,10 +38,8 @@ export function serverAxios(request?: Request) {
             },
           );
 
-          // Retry the original request
           return api(originalRequest);
         } catch (refreshError) {
-          // Refresh failed, redirect to signin
           return Promise.reject(refreshError);
         }
       }

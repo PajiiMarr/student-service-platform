@@ -46,28 +46,12 @@ func (h *UserHandler) SigninUser(c *gin.Context) {
 		return
 	}
 
-	// Set access token cookie (short-lived)
+	// Set access token cookie
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(
-		"auth_token",
-		accessToken,
-		900, // 15 minutes
-		"/",
-		"",
-		false,
-		true,
-	)
+	c.SetCookie("auth_token", accessToken, 900, "/", "", false, true)
 
-	// Set refresh token cookie (long-lived)
-	c.SetCookie(
-		"refresh_token",
-		refreshToken,
-		604800, // 7 days
-		"/",
-		"",
-		false,
-		true,
-	)
+	// Set refresh token cookie
+	c.SetCookie("refresh_token", refreshToken, 604800, "/", "", false, true)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login successful",
@@ -77,6 +61,7 @@ func (h *UserHandler) SigninUser(c *gin.Context) {
 			"email":    user.Email,
 			"role":     user.Role,
 		},
+		"token": accessToken,
 	})
 }
 
@@ -94,22 +79,22 @@ func (h *UserHandler) SignupUser(c *gin.Context) {
 		return
 	}
 
-	token, err := h.AuthService.GenerateJWT(user.ID, user.Role)
+	// Generate both tokens for signup too
+	accessToken, err := h.AuthService.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Failed to generate token: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Failed to generate access token: %v", err)})
+		return
+	}
+
+	refreshToken, err := h.AuthService.GenerateRefreshToken(user.ID, user.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Failed to generate refresh token: %v", err)})
 		return
 	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(
-		"auth_token",
-		token,
-		86400,
-		"/",
-		"",
-		false,
-		true,
-	)
+	c.SetCookie("auth_token", accessToken, 900, "/", "", false, true)
+	c.SetCookie("refresh_token", refreshToken, 604800, "/", "", false, true)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User created successfully",
@@ -120,6 +105,48 @@ func (h *UserHandler) SignupUser(c *gin.Context) {
 			"role":     user.Role,
 		},
 	})
+}
+
+func (h *UserHandler) LogoutUser(c *gin.Context) {
+	c.SetCookie("auth_token", "", -1, "/", "", false, true)
+	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+}
+
+func (h *UserHandler) RefreshToken(c *gin.Context) {
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No refresh token"})
+		return
+	}
+
+	claims, err := h.AuthService.ValidateJWT(refreshToken)
+	if err != nil || claims.Type != "refresh" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+		return
+	}
+
+	// Generate new access token
+	newAccessToken, err := h.AuthService.GenerateAccessToken(claims.UserID, claims.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to refresh token"})
+		return
+	}
+
+	// Generate new refresh token (rolling refresh)
+	newRefreshToken, err := h.AuthService.GenerateRefreshToken(claims.UserID, claims.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to refresh token"})
+		return
+	}
+
+	// Set new access token cookie
+	c.SetCookie("auth_token", newAccessToken, 900, "/", "", false, true)
+
+	// Set new refresh token cookie (extends the session)
+	c.SetCookie("refresh_token", newRefreshToken, 604800, "/", "", false, true)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Token refreshed"})
 }
 
 func (h *UserHandler) GetProfilingUser(c *gin.Context) {
@@ -150,7 +177,6 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 	}
 
 	var updateData struct {
-		// User fields
 		FirstName  string `json:"first_name"`
 		MiddleName string `json:"middle_name"`
 		LastName   string `json:"last_name"`
@@ -158,11 +184,10 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 		Street     string `json:"street"`
 		Barangay   string `json:"barangay"`
 		City       string `json:"city"`
-		// Student fields
-		CollegeID uint   `json:"college_id"`
-		CourseID  uint   `json:"course_id"`
-		YearLevel uint   `json:"year_level"`
-		Section   string `json:"section"`
+		CollegeID  uint   `json:"college_id"`
+		CourseID   uint   `json:"course_id"`
+		YearLevel  uint   `json:"year_level"`
+		Section    string `json:"section"`
 	}
 
 	if err := c.ShouldBindJSON(&updateData); err != nil {
@@ -170,11 +195,9 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 		return
 	}
 
-	// Log received data
 	fmt.Printf("Received data - UserID: %d, CollegeID: %d, CourseID: %d, YearLevel: %d, Section: %s\n",
 		user.ID, updateData.CollegeID, updateData.CourseID, updateData.YearLevel, updateData.Section)
 
-	// Convert to the type expected by the service
 	serviceData := &services.UpdateUserProfileData{
 		FirstName:  updateData.FirstName,
 		MiddleName: updateData.MiddleName,
