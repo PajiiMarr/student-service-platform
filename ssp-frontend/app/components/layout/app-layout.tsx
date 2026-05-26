@@ -2,9 +2,25 @@ import { useLocation } from "react-router";
 import { Header } from "./header";
 import { Footer } from "./footer";
 
-export function AppLayout({ children, isLoggedIn = false }: { children: React.ReactNode; isLoggedIn?: boolean }) {
+const EXCLUDED_ROUTES = [
+  "/student/view_job/",
+];
+
+export function AppLayout({
+  children,
+  isLoggedIn = false,
+}: {
+  children: React.ReactNode;
+  isLoggedIn?: boolean;
+}) {
   const location = useLocation();
   const path = location.pathname;
+
+  const isExcluded = EXCLUDED_ROUTES.some((route) => path.startsWith(route));
+
+  if (isExcluded) {
+    return <>{children}</>;
+  }
 
   const isAdminOrStudent =
     path.startsWith("/admin") || path.startsWith("/student");
@@ -24,7 +40,7 @@ export function AppLayout({ children, isLoggedIn = false }: { children: React.Re
       <header className="border-b border-gray-100">
         <div className="container mx-auto px-4 py-4">
           <a href="/">
-            <img src="jobili.svg" alt="Jobili" className="w-15 h-10" />
+            <img src="/jobili.svg" alt="Jobili" className="w-15 h-10" />
           </a>
         </div>
       </header>
