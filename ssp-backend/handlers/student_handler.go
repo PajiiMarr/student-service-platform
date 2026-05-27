@@ -74,3 +74,18 @@ func (h *StudentHandler) GetJobs(c *gin.Context) {
 		"jobs":    jobs,
 	})
 }
+
+func (h *StudentHandler) GetJobByID(c *gin.Context) {
+	jobID := c.Param("job_id")
+
+	job, err := h.StudentService.GetJobByID(c.Request.Context(), jobID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "Job not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"job":    job,
+	})
+}

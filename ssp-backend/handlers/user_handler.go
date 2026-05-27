@@ -16,55 +16,6 @@ type UserHandler struct {
 	AuthService *auth.AuthJWT
 }
 
-func (h *UserHandler) SigninUser(c *gin.Context) {
-	var credentials struct {
-		Email    string `json:"email" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&credentials); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email and password are required"})
-		return
-	}
-
-	user, err := h.UserService.AuthenticateUser(c.Request.Context(), credentials.Email, credentials.Password)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
-		return
-	}
-
-	// Generate both tokens
-	accessToken, err := h.AuthService.GenerateAccessToken(user.ID, user.Role)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
-		return
-	}
-
-	refreshToken, err := h.AuthService.GenerateRefreshToken(user.ID, user.Role)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
-		return
-	}
-
-	// Set access token cookie
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("auth_token", accessToken, 900, "/", "", false, true)
-
-	// Set refresh token cookie
-	c.SetCookie("refresh_token", refreshToken, 604800, "/", "", false, true)
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Login successful",
-		"user": gin.H{
-			"id":       user.ID,
-			"username": user.Username,
-			"email":    user.Email,
-			"role":     user.Role,
-		},
-		"token": accessToken,
-	})
-}
-
 func (h *UserHandler) SignupUser(c *gin.Context) {
 	var user models.User
 
@@ -113,6 +64,51 @@ func (h *UserHandler) LogoutUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
 
+func (h *UserHandler) SigninUser(c *gin.Context) {
+	var credentials struct {
+		Email    string `json:"email" binding:"required"`
+		Password string `json:"password" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&credentials); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email and password are required"})
+		return
+	}
+
+	user, err := h.UserService.AuthenticateUser(c.Request.Context(), credentials.Email, credentials.Password)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		return
+	}
+
+	accessToken, err := h.AuthService.GenerateAccessToken(user.ID, user.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
+		return
+	}
+
+	refreshToken, err := h.AuthService.GenerateRefreshToken(user.ID, user.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
+		return
+	}
+
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("auth_token", accessToken, 900, "/", "", false, true)
+	c.SetCookie("refresh_token", refreshToken, 604800, "/", "", false, true)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Login successful",
+		"user": gin.H{
+			"id":       user.ID,
+			"username": user.Username,
+			"email":    user.Email,
+			"role":     user.Role,
+		},
+		"token": accessToken,
+	})
+}
+
 func (h *UserHandler) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
@@ -126,24 +122,19 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// Generate new access token
 	newAccessToken, err := h.AuthService.GenerateAccessToken(claims.UserID, claims.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to refresh token"})
 		return
 	}
 
-	// Generate new refresh token (rolling refresh)
 	newRefreshToken, err := h.AuthService.GenerateRefreshToken(claims.UserID, claims.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to refresh token"})
 		return
 	}
 
-	// Set new access token cookie
 	c.SetCookie("auth_token", newAccessToken, 900, "/", "", false, true)
-
-	// Set new refresh token cookie (extends the session)
 	c.SetCookie("refresh_token", newRefreshToken, 604800, "/", "", false, true)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Token refreshed"})

@@ -87,3 +87,22 @@ func (r *StudentRepository) GetAllJobs(ctx context.Context) ([]models.Job, error
 		Find(&jobs).Error
 	return jobs, err
 }
+
+func (r *StudentRepository) GetJobByID(ctx context.Context, jobID string) (*models.Job, error) {
+	var job models.Job
+	err := r.DB.WithContext(ctx).
+		Preload("Student", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("User", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, first_name, middle_name, last_name, email")
+			}).Preload("Course.College")
+		}).
+		First(&job, jobID).Error
+	
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("job not found")
+		}
+		return nil, err
+	}
+	return &job, nil
+}
