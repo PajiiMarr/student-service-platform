@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 const isServer = typeof window === "undefined";
 
 export function serverAxios(request?: Request) {
@@ -28,38 +29,29 @@ export function serverAxios(request?: Request) {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
-
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
-
           try {
-            const refreshResponse = await axios.post(
+            // Just call refresh — browser sets the new cookies automatically
+            await axios.post(
               `${API_BASE_URL}/api/refresh`,
               {},
-              { withCredentials: true }
+              { withCredentials: true },
             );
 
-            const setCookie = refreshResponse.headers["set-cookie"];
-            if (setCookie) {
-              const cookies = Array.isArray(setCookie) ? setCookie : [setCookie];
-              cookies.forEach((c: string) => {
-                const [nameValue] = c.split(";");
-                const [key, val] = nameValue.split("=");
-                if (key === "auth_token") {
-                  originalRequest.headers.Authorization = `Bearer ${val}`;
-                }
-              });
-            }
+            // Remove stale Authorization header so the retry
+            // relies purely on the fresh cookie the browser just stored
+            delete originalRequest.headers["Authorization"];
 
+            // Small tick to ensure cookies are committed before retry
             return api(originalRequest);
           } catch (refreshError) {
             window.location.href = "/signin";
             return Promise.reject(refreshError);
           }
         }
-
         return Promise.reject(error);
-      }
+      },
     );
   }
 

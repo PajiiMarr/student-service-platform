@@ -134,6 +134,7 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
+	c.SetSameSite(http.SameSiteLaxMode) 
 	c.SetCookie("auth_token", newAccessToken, 900, "/", "", false, true)
 	c.SetCookie("refresh_token", newRefreshToken, 604800, "/", "", false, true)
 
