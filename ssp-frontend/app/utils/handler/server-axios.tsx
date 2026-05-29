@@ -39,11 +39,8 @@ export function serverAxios(request?: Request) {
               { withCredentials: true },
             );
 
-            // Remove stale Authorization header so the retry
-            // relies purely on the fresh cookie the browser just stored
             delete originalRequest.headers["Authorization"];
 
-            // Small tick to ensure cookies are committed before retry
             return api(originalRequest);
           } catch (refreshError) {
             window.location.href = "/signin";
