@@ -1,7 +1,10 @@
 // app/routes/user/student/view_job/view_job.tsx
 import type { Route } from "./+types/view_job";
 import { redirect, useLoaderData } from "react-router";
-import { serverAxios } from "~/utils/handler/server-axios";
+import {
+  refreshTokenOnServer,
+  serverAxios,
+} from "~/utils/handler/server-axios";
 import {
   Card,
   CardContent,
@@ -23,29 +26,46 @@ import {
   Building,
   Hash,
   BookOpen,
-  PhilippinePeso
+  PhilippinePeso,
 } from "lucide-react";
 import { Link } from "react-router";
 
 export function meta({ data }: Route.MetaArgs) {
   return [
     { title: data?.job ? `Job: ${data.job.title}` : "View Job" },
-    { name: "description", content: data?.job?.description?.substring(0, 160) || "View job details" },
+    {
+      name: "description",
+      content: data?.job?.description?.substring(0, 160) || "View job details",
+    },
   ];
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  try {
-    const api = serverAxios(request);
-    const userResponse = await api.get("/api/protected/profiling");
-    const jobResponse = await api.get(`/api/student/jobs/${params.job_id}`);
-
+  const fetchData = async (token?: string) => {
+    const api = serverAxios(request, token);
+    const [userResponse, jobResponse] = await Promise.all([
+      api.get("/api/protected/profiling"),
+      api.get(`/api/student/jobs/${params.job_id}`),
+    ]);
     return {
       user: userResponse.data.user,
       job: jobResponse.data.job || jobResponse.data,
     };
+  };
+
+  try {
+    return await fetchData();
   } catch (error: any) {
-    if (error.response?.status === 401) return redirect("/signin");
+    if (error.response?.status === 401) {
+      const newToken = await refreshTokenOnServer(request);
+      if (!newToken) return redirect("/signin");
+
+      try {
+        return await fetchData(newToken);
+      } catch {
+        return redirect("/signin");
+      }
+    }
     return {
       error: error.response?.data?.message || "Failed to load job details",
       user: null,
@@ -72,7 +92,8 @@ export default function ViewJob() {
                 Job Not Found
               </h3>
               <p className="mt-2 text-sm text-gray-500">
-                {error || "The job you're looking for doesn't exist or has been removed."}
+                {error ||
+                  "The job you're looking for doesn't exist or has been removed."}
               </p>
               <Link to="/student">
                 <Button className="mt-4" variant="outline">
@@ -95,10 +116,14 @@ export default function ViewJob() {
     ? `${postedBy.first_name?.[0] || ""}${postedBy.last_name?.[0] || ""}`
     : "??";
 
-  const statusVariant = 
-    job.status === "completed" ? "default" :
-    job.status === "in_progress" ? "secondary" :
-    job.status === "cancelled" ? "destructive" : "outline";
+  const statusVariant =
+    job.status === "completed"
+      ? "default"
+      : job.status === "in_progress"
+        ? "secondary"
+        : job.status === "cancelled"
+          ? "destructive"
+          : "outline";
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -215,10 +240,10 @@ export default function ViewJob() {
                             {job.Student.YearLevel === 1
                               ? "st"
                               : job.Student.YearLevel === 2
-                              ? "nd"
-                              : job.Student.YearLevel === 3
-                              ? "rd"
-                              : "th"}{" "}
+                                ? "nd"
+                                : job.Student.YearLevel === 3
+                                  ? "rd"
+                                  : "th"}{" "}
                             Year
                           </p>
                         </div>
