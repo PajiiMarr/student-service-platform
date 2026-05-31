@@ -3,7 +3,7 @@ import { redirect } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { serverAxios } from "~/utils/handler/server-axios";
+import { refreshTokenOnServer, serverAxios } from "~/utils/handler/server-axios";
 import JobPostContainer from "~/components/user/student/job_post_container";
 import PostListContainer from "~/components/user/student/post_lists";
 
@@ -15,19 +15,32 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  try {
-    const api = serverAxios(request);
-    // Fetch user profile
-    const userResponse = await api.get("/api/protected/profiling");
-    // Fetch all jobs (ordered by created_at)
-    const jobsResponse = await api.get("/api/student/jobs");
-
+  const fetchData = async (token?: string) => {
+    const api = serverAxios(request, token);
+    const [userResponse, jobsResponse] = await Promise.all([
+      api.get("/api/protected/profiling"),
+      api.get("/api/student/jobs"),
+    ]);
     return {
       user: userResponse.data.user,
       jobs: jobsResponse.data.jobs || [],
     };
+  };
+
+  try {
+    return await fetchData();
   } catch (error: any) {
-    if (error.response?.status === 401) return redirect("/signin");
+    if (error.response?.status === 401) {
+      // Token expired — try refresh once
+      const newToken = await refreshTokenOnServer(request);
+      if (!newToken) return redirect("/signin");
+
+      try {
+        return await fetchData(newToken);
+      } catch {
+        return redirect("/signin");
+      }
+    }
     return {
       error: error.response?.data?.message || "Failed to load profile",
       jobs: [],
@@ -41,31 +54,37 @@ export async function action({ request }: Route.ActionArgs) {
   const jobDescription = formData.get("description");
   const jobAmount = formData.get("amount_offer");
 
-  try {
-    const api = serverAxios(request);
-    const response = await api.post("/api/student/jobs", {
+  const postJob = async (token?: string) => {
+    const api = serverAxios(request, token);
+    return await api.post("/api/student/jobs", {
       title: jobTitle,
       description: jobDescription,
       amount_offer: parseFloat(jobAmount as string),
     });
+  };
 
+  try {
+    const response = await postJob();
     if (response.data.success) {
-      return {
-        success: true,
-        message: response.data.message || "Job post created successfully!",
-        job: response.data.job,
-      };
-    } else {
-      return { error: response.data.message || "Failed to create job post" };
+      return { success: true, message: response.data.message, job: response.data.job };
     }
+    return { error: response.data.message || "Failed to create job post" };
   } catch (error: any) {
-    console.error("Error creating job post:", error);
-    if (error.response?.status === 401) return redirect("/signin");
-    return {
-      error:
-        error.response?.data?.message ||
-        "An error occurred while creating the job post",
-    };
+    if (error.response?.status === 401) {
+      const newToken = await refreshTokenOnServer(request);
+      if (!newToken) return redirect("/signin");
+
+      try {
+        const response = await postJob(newToken);
+        if (response.data.success) {
+          return { success: true, message: response.data.message, job: response.data.job };
+        }
+        return { error: response.data.message || "Failed to create job post" };
+      } catch {
+        return redirect("/signin");
+      }
+    }
+    return { error: error.response?.data?.message || "An error occurred" };
   }
 }
 

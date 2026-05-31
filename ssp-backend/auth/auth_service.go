@@ -1,4 +1,4 @@
-// backend/auth/auth.go
+// backend/auth/auth_service.go
 package auth
 
 import (
