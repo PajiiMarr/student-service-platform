@@ -3,7 +3,10 @@ import { redirect } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { refreshTokenOnServer, serverAxios } from "~/utils/handler/server-axios";
+import {
+  refreshTokenOnServer,
+  serverAxios,
+} from "~/utils/handler/server-axios";
 import JobPostContainer from "~/components/user/student/job_post_container";
 import PostListContainer from "~/components/user/student/post_lists";
 
@@ -31,12 +34,17 @@ export async function loader({ request }: Route.LoaderArgs) {
     return await fetchData();
   } catch (error: any) {
     if (error.response?.status === 401) {
-      // Token expired — try refresh once
-      const newToken = await refreshTokenOnServer(request);
+      const { token: newToken, rawSetCookies } =
+        await refreshTokenOnServer(request);
       if (!newToken) return redirect("/signin");
 
       try {
-        return await fetchData(newToken);
+        const data = await fetchData(newToken);
+
+        const headers = new Headers({ "Content-Type": "application/json" });
+        rawSetCookies.forEach((c) => headers.append("Set-Cookie", c));
+
+        return new Response(JSON.stringify(data), { headers });
       } catch {
         return redirect("/signin");
       }
@@ -63,23 +71,44 @@ export async function action({ request }: Route.ActionArgs) {
     });
   };
 
+  const buildResponse = (data: object, rawSetCookies: string[]) => {
+    const headers = new Headers({ "Content-Type": "application/json" });
+    rawSetCookies.forEach((c) => headers.append("Set-Cookie", c));
+    return new Response(JSON.stringify(data), { headers });
+  };
+
   try {
     const response = await postJob();
     if (response.data.success) {
-      return { success: true, message: response.data.message, job: response.data.job };
+      return {
+        success: true,
+        message: response.data.message,
+        job: response.data.job,
+      };
     }
     return { error: response.data.message || "Failed to create job post" };
   } catch (error: any) {
     if (error.response?.status === 401) {
-      const newToken = await refreshTokenOnServer(request);
+      const { token: newToken, rawSetCookies } =
+        await refreshTokenOnServer(request);
       if (!newToken) return redirect("/signin");
 
       try {
         const response = await postJob(newToken);
         if (response.data.success) {
-          return { success: true, message: response.data.message, job: response.data.job };
+          return buildResponse(
+            {
+              success: true,
+              message: response.data.message,
+              job: response.data.job,
+            },
+            rawSetCookies,
+          );
         }
-        return { error: response.data.message || "Failed to create job post" };
+        return buildResponse(
+          { error: response.data.message || "Failed to create job post" },
+          rawSetCookies,
+        );
       } catch {
         return redirect("/signin");
       }

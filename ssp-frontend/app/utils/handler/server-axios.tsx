@@ -4,29 +4,33 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 const isServer = typeof window === "undefined";
 
-export async function refreshTokenOnServer(request: Request): Promise<string | null> {
+export async function refreshTokenOnServer(request: Request): Promise<{
+  token: string | null;
+  rawSetCookies: string[];
+}> {
   const cookie = request.headers.get("Cookie");
   try {
     const response = await axios.post(
       `${API_BASE_URL}/api/refresh`,
       {},
-      {
-        headers: { Cookie: cookie || "" },
-        withCredentials: true,
-      }
+      { headers: { Cookie: cookie || "" } },
     );
 
-    // On server, set-cookie IS readable
     const setCookieHeader = response.headers["set-cookie"];
-    if (!setCookieHeader) return null;
+    if (!setCookieHeader) return { token: null, rawSetCookies: [] };
 
-    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
+    const cookies = Array.isArray(setCookieHeader)
+      ? setCookieHeader
+      : [setCookieHeader];
     const authCookie = cookies.find((c) => c.startsWith("auth_token="));
-    if (!authCookie) return null;
+    if (!authCookie) return { token: null, rawSetCookies: [] };
 
-    return authCookie.split(";")[0].split("=")[1];
+    return {
+      token: authCookie.split(";")[0].split("=")[1],
+      rawSetCookies: cookies,
+    };
   } catch {
-    return null;
+    return { token: null, rawSetCookies: [] };
   }
 }
 
@@ -67,7 +71,7 @@ export function serverAxios(request?: Request, overrideToken?: string) {
             await axios.post(
               `${API_BASE_URL}/api/refresh`,
               {},
-              { withCredentials: true }
+              { withCredentials: true },
             );
             delete originalRequest.headers["Authorization"];
             return api(originalRequest);
@@ -77,7 +81,7 @@ export function serverAxios(request?: Request, overrideToken?: string) {
           }
         }
         return Promise.reject(error);
-      }
+      },
     );
   }
 

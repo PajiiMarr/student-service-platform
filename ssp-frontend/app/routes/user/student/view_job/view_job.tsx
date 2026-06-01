@@ -57,11 +57,17 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     return await fetchData();
   } catch (error: any) {
     if (error.response?.status === 401) {
-      const newToken = await refreshTokenOnServer(request);
+      const { token: newToken, rawSetCookies } =
+        await refreshTokenOnServer(request);
       if (!newToken) return redirect("/signin");
 
       try {
-        return await fetchData(newToken);
+        const data = await fetchData(newToken);
+
+        const headers = new Headers({ "Content-Type": "application/json" });
+        rawSetCookies.forEach((c) => headers.append("Set-Cookie", c));
+
+        return new Response(JSON.stringify(data), { headers });
       } catch {
         return redirect("/signin");
       }
