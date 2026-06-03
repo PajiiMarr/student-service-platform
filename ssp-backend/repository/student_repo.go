@@ -106,3 +106,19 @@ func (r *StudentRepository) GetJobByID(ctx context.Context, jobID string) (*mode
 	}
 	return &job, nil
 }
+
+func (r *StudentRepository) GetStudentProfileByID(ctx context.Context, studentID uint) (*models.Student, error) {
+	var student models.Student
+	err := r.DB.WithContext(ctx).
+		Preload("User").
+		Preload("Course").
+		Preload("Course.College").
+		First(&student, studentID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &student, nil
+}

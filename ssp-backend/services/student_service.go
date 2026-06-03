@@ -42,3 +42,7 @@ func (s *StudentService) GetAllJobs(ctx context.Context) ([]models.Job, error) {
 func (s *StudentService) GetJobByID(ctx context.Context, jobID string) (*models.Job, error) {
 	return s.StudentRepo.GetJobByID(ctx, jobID)
 }
+
+func (s *StudentService) GetStudentProfileByID(ctx context.Context, studentID uint) (*models.Student, error) {
+	return s.StudentRepo.GetStudentProfileByID(ctx, studentID)
+}

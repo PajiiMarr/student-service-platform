@@ -101,6 +101,7 @@ func registerStudentRoutes(r *gin.Engine, studentHandler *handlers.StudentHandle
 		studentGroup.GET("/jobs", studentHandler.GetJobs)
 		studentGroup.GET("/jobs/:job_id", studentHandler.GetJobByID)
 		studentGroup.POST("/jobs", studentHandler.PostJob)
+		studentGroup.GET("/profile", studentHandler.GetStudentProfile)
 		// studentGroup.PUT("/profile", studentHandler.UpdateStudentProfile)
 		// studentGroup.GET("/enrollments", studentHandler.GetEnrollments)
 		// Add other student-specific endpoints here

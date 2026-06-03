@@ -86,6 +86,40 @@ func (h *StudentHandler) GetJobByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"job":    job,
+		"job":     job,
+	})
+}
+
+func (h *StudentHandler) GetStudentProfile(c *gin.Context) {
+	// Get authenticated user ID from context
+	userID, exists := middleware.GetAuthenticatedUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "User not authenticated"})
+		return
+	}
+
+	// Fetch the student record for this user (with preloaded relationships)
+	student, err := h.StudentService.GetStudentByUserID(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to retrieve student profile"})
+		return
+	}
+	if student == nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "Student profile not found"})
+		return
+	}
+
+	// Preload Course and College if not already loaded (depends on your service/repo)
+	// You can modify GetStudentByUserID to Preload, or load manually here:
+	if student.Course.ID == 0 {
+		if err := h.StudentService.StudentRepo.DB.Preload("Course.College").First(student, student.ID).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to load course details"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"student": student,
 	})
 }
