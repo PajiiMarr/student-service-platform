@@ -19,6 +19,7 @@ export default [
     
     ...prefix("student", [
         index('routes/user/student/home.tsx'),
+        route('profile', 'routes/user/student/profile.tsx'),
         route('profiling', 'routes/user/student/profiling.tsx'),
         route('view_job/:job_id', 'routes/user/student/view_job/view_job.tsx'),
         // route('jobs', 'routes/user/admin/jobs.tsx'),
